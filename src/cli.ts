@@ -45,7 +45,7 @@ function parseArgs(args: string[]): CliOptions {
 
 function printUsage(): void {
   console.log(`
-vernon — Generate obituaries for deleted code
+Vernon — Generate obituaries for deleted code
 
 Commands:
   scan [--ref <ref>]       Scan latest commit for deletions (default)

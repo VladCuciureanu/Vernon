@@ -1,25 +1,6 @@
-# vernon
+# Vernon
 
-```
-                     REST IN PEACE
-                    ┌─────────────┐
-                    │             │
-                    │  Here lies  │
-                    │ getUserById │
-                    │             │
-                    │ 2022 - 2026 │
-                    │             │
-                    │  It never   │
-                    │  threw an   │
-                    │  uncaught   │
-                    │  exception  │
-                    │             │
-                    └──────┬──────┘
-                           │
-                    ───────┴───────
-```
-
-Every time you delete a file or function, **vernon** writes a short eulogy for it — sourced entirely from your git history.
+Every time you delete a file or function, **Vernon** writes a short eulogy for it — sourced entirely from your git history.
 
 > *"Here lies getUserById(), born March 2022, killed by a refactor. It survived 47 commits before meeting its end. Cause of death: "refactor: move to new query layer". No tests were broken in its removal. Suspicious."*
 
@@ -137,7 +118,7 @@ Now every commit that deletes code will generate obituaries before the commit go
 
 #### Husky + lint-staged
 
-If you're already using `lint-staged`, just add vernon as a separate line in `.husky/pre-commit`:
+If you're already using `lint-staged`, just add Vernon as a separate line in `.husky/pre-commit`:
 
 ```bash
 # .husky/pre-commit
@@ -170,7 +151,3 @@ Whole-file deletions are detected for **all** file types.
 5. **Cemetery** — appends to `CEMETERY.md`
 
 No AI. No network calls. Just git and templates.
-
-## License
-
-MIT

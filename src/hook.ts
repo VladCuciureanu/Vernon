@@ -39,7 +39,7 @@ export function uninstallHook(): void {
 
   const content = readFileSync(hookPath, "utf-8");
   if (!content.includes(HOOK_MARKER)) {
-    console.log("No vernon hook found.");
+    console.log("No Vernon hook found.");
     return;
   }
 
