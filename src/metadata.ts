@@ -1,5 +1,5 @@
-import type { Deletion, Metadata } from "./types.js";
-import * as git from "./git.js";
+import type { Deletion, Metadata } from "./types.ts";
+import * as git from "./git.ts";
 
 export function enrichDeletion(deletion: Deletion): Metadata {
   const now = new Date().toISOString().split("T")[0];
@@ -29,7 +29,6 @@ export function enrichDeletion(deletion: Deletion): Metadata {
 }
 
 function countFileLines(deletion: Deletion): number {
-  // For deleted files, try to get full content from git
   const content = git.getFileContentBeforeDeletion(deletion.filePath);
   if (content) {
     return content.split("\n").length;

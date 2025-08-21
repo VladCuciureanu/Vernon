@@ -1,14 +1,13 @@
-import { describe, it, expect } from "vitest";
-import { parseDiff } from "../src/diff-parser.js";
+import { assertEquals, assert } from "@std/assert";
+import { parseDiff } from "../src/diff-parser.ts";
 
-describe("parseDiff", () => {
-  it("returns empty array for empty diff", () => {
-    expect(parseDiff("")).toEqual([]);
-    expect(parseDiff("  \n  ")).toEqual([]);
-  });
+Deno.test("parseDiff - returns empty array for empty diff", () => {
+  assertEquals(parseDiff(""), []);
+  assertEquals(parseDiff("  \n  "), []);
+});
 
-  it("detects a deleted file", () => {
-    const diff = `diff --git a/src/utils.ts b/src/utils.ts
+Deno.test("parseDiff - detects a deleted file", () => {
+  const diff = `diff --git a/src/utils.ts b/src/utils.ts
 deleted file mode 100644
 index abc1234..0000000
 --- a/src/utils.ts
@@ -18,17 +17,17 @@ index abc1234..0000000
 -  return true;
 -}
 `;
-    const result = parseDiff(diff);
-    expect(result).toHaveLength(1);
-    expect(result[0].type).toBe("file");
-    expect(result[0].name).toBe("utils.ts");
-    expect(result[0].filePath).toBe("src/utils.ts");
-    expect(result[0].language).toBe("javascript");
-    expect(result[0].removedLines).toHaveLength(3);
-  });
+  const result = parseDiff(diff);
+  assertEquals(result.length, 1);
+  assertEquals(result[0].type, "file");
+  assertEquals(result[0].name, "utils.ts");
+  assertEquals(result[0].filePath, "src/utils.ts");
+  assertEquals(result[0].language, "javascript");
+  assertEquals(result[0].removedLines.length, 3);
+});
 
-  it("detects deleted functions in a modified file", () => {
-    const diff = `diff --git a/src/api.ts b/src/api.ts
+Deno.test("parseDiff - detects deleted functions in a modified file", () => {
+  const diff = `diff --git a/src/api.ts b/src/api.ts
 index abc1234..def5678 100644
 --- a/src/api.ts
 +++ b/src/api.ts
@@ -39,16 +38,16 @@ index abc1234..def5678 100644
 -
 -export function deleteUser(id: string) {
 `;
-    const result = parseDiff(diff);
-    expect(result.length).toBeGreaterThanOrEqual(2);
-    const names = result.map((d) => d.name);
-    expect(names).toContain("getUserById");
-    expect(names).toContain("deleteUser");
-    expect(result.every((d) => d.type === "function")).toBe(true);
-  });
+  const result = parseDiff(diff);
+  assert(result.length >= 2);
+  const names = result.map((d) => d.name);
+  assert(names.includes("getUserById"));
+  assert(names.includes("deleteUser"));
+  assert(result.every((d) => d.type === "function"));
+});
 
-  it("handles multiple files in one diff", () => {
-    const diff = `diff --git a/src/a.ts b/src/a.ts
+Deno.test("parseDiff - handles multiple files in one diff", () => {
+  const diff = `diff --git a/src/a.ts b/src/a.ts
 deleted file mode 100644
 index abc..000
 --- a/src/a.ts
@@ -63,14 +62,14 @@ index abc..000
 @@ -1,1 +0,0 @@
 -print("b")
 `;
-    const result = parseDiff(diff);
-    const fileNames = result.map((d) => d.name);
-    expect(fileNames).toContain("a.ts");
-    expect(fileNames).toContain("b.py");
-  });
+  const result = parseDiff(diff);
+  const fileNames = result.map((d) => d.name);
+  assert(fileNames.includes("a.ts"));
+  assert(fileNames.includes("b.py"));
+});
 
-  it("ignores files with no removals", () => {
-    const diff = `diff --git a/src/new.ts b/src/new.ts
+Deno.test("parseDiff - ignores files with no removals", () => {
+  const diff = `diff --git a/src/new.ts b/src/new.ts
 index 000..abc 100644
 --- /dev/null
 +++ b/src/new.ts
@@ -79,21 +78,19 @@ index 000..abc 100644
 +  return 42;
 +}
 `;
-    const result = parseDiff(diff);
-    expect(result).toHaveLength(0);
-  });
+  const result = parseDiff(diff);
+  assertEquals(result.length, 0);
+});
 
-  it("does not treat --- header as a removed line", () => {
-    const diff = `diff --git a/src/x.ts b/src/x.ts
+Deno.test("parseDiff - does not treat --- header as a removed line", () => {
+  const diff = `diff --git a/src/x.ts b/src/x.ts
 index abc..def 100644
 --- a/src/x.ts
 +++ b/src/x.ts
 @@ -1,2 +1,1 @@
 -function old() {}
 `;
-    const result = parseDiff(diff);
-    // Should find the function, and removedLines should not include the "--- a/src/x.ts" line
-    const allRemoved = result.flatMap((d) => d.removedLines);
-    expect(allRemoved.every((l) => !l.startsWith("-- "))).toBe(true);
-  });
+  const result = parseDiff(diff);
+  const allRemoved = result.flatMap((d) => d.removedLines);
+  assert(allRemoved.every((l) => !l.startsWith("-- ")));
 });

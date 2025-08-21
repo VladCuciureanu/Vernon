@@ -8,9 +8,19 @@ Your git history is now a cemetery.
 
 ## Install
 
+### From JSR
+
 ```bash
-npm install vernon
+deno install -g --allow-run --allow-read --allow-write jsr:@vladcuciureanu/vernon
 ```
+
+### Standalone binary
+
+```bash
+deno compile --allow-run --allow-read --allow-write --output vernon bin/vernon.ts
+```
+
+This produces a single `vernon` binary with zero runtime dependencies.
 
 ## Usage
 
@@ -85,45 +95,14 @@ vernon hook install    # writes to .git/hooks/pre-commit
 vernon hook uninstall  # removes it
 ```
 
-This appends `npx vernon diff` to your pre-commit hook. If a hook already exists, it won't overwrite it — just appends.
+This appends a `deno run` command to your pre-commit hook. If a hook already exists, it won't overwrite it — just appends.
 
-### With Husky
+### Manual hook
 
-[Husky](https://typicode.github.io/husky/) is the most popular way to manage git hooks in JS projects. Here's how to wire it up:
-
-#### 1. Install Husky
+Add this to `.git/hooks/pre-commit` (or your hook runner of choice):
 
 ```bash
-npm install --save-dev husky
-npx husky init
-```
-
-This creates a `.husky/` directory and adds a `prepare` script to your `package.json`.
-
-#### 2. Add the pre-commit hook
-
-```bash
-echo "npx vernon diff" >> .husky/pre-commit
-```
-
-Or if you want to replace the default hook entirely:
-
-```bash
-echo "npx vernon diff" > .husky/pre-commit
-```
-
-#### 3. That's it
-
-Now every commit that deletes code will generate obituaries before the commit goes through. The updated `CEMETERY.md` will show up as an unstaged change you can include in a follow-up commit — or not. No judgment.
-
-#### Husky + lint-staged
-
-If you're already using `lint-staged`, just add Vernon as a separate line in `.husky/pre-commit`:
-
-```bash
-# .husky/pre-commit
-npx lint-staged
-npx vernon diff
+deno run --allow-run --allow-read --allow-write jsr:@vladcuciureanu/vernon diff
 ```
 
 ## Supported Languages

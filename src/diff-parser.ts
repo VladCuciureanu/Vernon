@@ -1,5 +1,5 @@
-import type { Deletion } from "./types.js";
-import { detectLanguage, detectDeletedFunctions } from "./function-detector.js";
+import type { Deletion } from "./types.ts";
+import { detectLanguage, detectDeletedFunctions } from "./function-detector.ts";
 
 interface DiffFile {
   filePath: string;
@@ -15,7 +15,6 @@ export function parseDiff(rawDiff: string): Deletion[] {
 
   for (const file of files) {
     if (file.isDeleted) {
-      // Whole file deleted
       deletions.push({
         type: "file",
         name: file.filePath.split("/").pop() || file.filePath,
@@ -24,7 +23,6 @@ export function parseDiff(rawDiff: string): Deletion[] {
         removedLines: file.removedLines,
       });
     } else if (file.removedLines.length > 0) {
-      // Partial deletion — look for function removals
       const funcDeletions = detectDeletedFunctions(file.removedLines, file.filePath);
       deletions.push(...funcDeletions);
     }
@@ -40,18 +38,16 @@ function splitIntoFiles(rawDiff: string): DiffFile[] {
   for (const chunk of fileChunks) {
     const lines = chunk.split("\n");
 
-    // Extract file path from "a/path b/path"
     const headerMatch = lines[0]?.match(/a\/(.+?) b\//);
     if (!headerMatch) continue;
     const filePath = headerMatch[1];
 
     const isDeleted = chunk.includes("deleted file mode");
 
-    // Collect removed lines (lines starting with - but not ---)
     const removedLines: string[] = [];
     for (const line of lines) {
       if (line.startsWith("-") && !line.startsWith("---")) {
-        removedLines.push(line.slice(1)); // strip the leading -
+        removedLines.push(line.slice(1));
       }
     }
 

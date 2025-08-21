@@ -1,23 +1,23 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import type { Obituary } from "./types.js";
-import { getRepoRoot } from "./git.js";
+import { join } from "@std/path";
+import { existsSync } from "@std/fs";
+import type { Obituary } from "./types.ts";
+import { getRepoRoot } from "./git.ts";
 
 const HEADER = "# Code Cemetery\n\n> Where deleted code rests in peace.\n";
 
-function getCemeteryPath(): string {
-  const root = getRepoRoot() || process.cwd();
+function getCemeteryPath(repoRoot?: string): string {
+  const root = repoRoot ?? (getRepoRoot() || Deno.cwd());
   return join(root, "CEMETERY.md");
 }
 
-export function appendToCemetery(obituaries: Obituary[]): void {
+export function appendToCemetery(obituaries: Obituary[], repoRoot?: string): void {
   if (obituaries.length === 0) return;
 
-  const path = getCemeteryPath();
+  const path = getCemeteryPath(repoRoot);
   let existing = "";
 
   if (existsSync(path)) {
-    existing = readFileSync(path, "utf-8");
+    existing = Deno.readTextFileSync(path);
   } else {
     existing = HEADER;
   }
@@ -26,7 +26,6 @@ export function appendToCemetery(obituaries: Obituary[]): void {
   const dateHeading = `## ${date}\n`;
 
   let section = "";
-  // Add date heading if not already present for today
   if (!existing.includes(dateHeading)) {
     section += `\n${dateHeading}\n`;
   }
@@ -41,11 +40,11 @@ export function appendToCemetery(obituaries: Obituary[]): void {
     section += `> ${obit.text}\n\n`;
   }
 
-  writeFileSync(path, existing + section, "utf-8");
+  Deno.writeTextFileSync(path, existing + section);
 }
 
-export function readCemetery(): string | null {
-  const path = getCemeteryPath();
+export function readCemetery(repoRoot?: string): string | null {
+  const path = getCemeteryPath(repoRoot);
   if (!existsSync(path)) return null;
-  return readFileSync(path, "utf-8");
+  return Deno.readTextFileSync(path);
 }

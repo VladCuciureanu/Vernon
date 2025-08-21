@@ -1,12 +1,12 @@
-import type { CliOptions } from "./types.js";
-import { isInsideGitRepo, getStagedDiff, getCommitDiff } from "./git.js";
-import { parseDiff } from "./diff-parser.js";
-import { enrichDeletion } from "./metadata.js";
-import { generateObituary } from "./obituary-generator.js";
-import { appendToCemetery, readCemetery } from "./cemetery.js";
-import { installHook, uninstallHook } from "./hook.js";
+import type { CliOptions, Deletion } from "./types.ts";
+import { isInsideGitRepo, getStagedDiff, getCommitDiff } from "./git.ts";
+import { parseDiff } from "./diff-parser.ts";
+import { enrichDeletion } from "./metadata.ts";
+import { generateObituary } from "./obituary-generator.ts";
+import { appendToCemetery, readCemetery } from "./cemetery.ts";
+import { installHook, uninstallHook } from "./hook.ts";
 
-function parseArgs(args: string[]): CliOptions {
+function parseArgs(args: readonly string[]): CliOptions {
   const opts: CliOptions = {
     command: "scan",
     dryRun: false,
@@ -61,7 +61,7 @@ Options:
 `);
 }
 
-export function run(args: string[]): void {
+export function run(args: readonly string[]): void {
   if (args.includes("--help") || args.includes("-h")) {
     printUsage();
     return;
@@ -88,7 +88,7 @@ export function run(args: string[]): void {
 
   if (!isInsideGitRepo()) {
     console.error("Not inside a git repository.");
-    process.exit(1);
+    Deno.exit(1);
   }
 
   let rawDiff: string;
@@ -96,7 +96,6 @@ export function run(args: string[]): void {
   if (opts.command === "diff") {
     rawDiff = getStagedDiff();
   } else if (opts.command === "mourn" && opts.mournPath) {
-    // For mourn, generate a diff for the specific file
     rawDiff = getCommitDiff(opts.ref);
   } else {
     rawDiff = getCommitDiff(opts.ref);
@@ -110,7 +109,6 @@ export function run(args: string[]): void {
   const deletions = parseDiff(rawDiff);
 
   if (opts.command === "mourn" && opts.mournPath) {
-    // Filter to only the specified file
     const filtered = deletions.filter((d) => d.filePath === opts.mournPath);
     if (filtered.length === 0) {
       console.log(`No deletions found for ${opts.mournPath}`);
@@ -133,7 +131,7 @@ export function run(args: string[]): void {
   processObituaries(limited, opts);
 }
 
-function processObituaries(deletions: import("./types.js").Deletion[], opts: CliOptions): void {
+function processObituaries(deletions: Deletion[], opts: CliOptions): void {
   const obituaries = deletions.map((d) => {
     if (opts.verbose) {
       console.log(`  [${d.type}] ${d.name} (${d.filePath})`);
@@ -144,10 +142,9 @@ function processObituaries(deletions: import("./types.js").Deletion[], opts: Cli
 
   if (obituaries.length === 0) return;
 
-  // Always print to stdout
   console.log("");
   for (const obit of obituaries) {
-    const icon = obit.deletion.type === "file" ? "📁" : "⚰️";
+    const icon = obit.deletion.type === "file" ? "\u{1F4C1}" : "\u26B0\uFE0F";
     console.log(`${icon}  ${obit.text}`);
     console.log("");
   }

@@ -1,4 +1,4 @@
-import type { Deletion } from "./types.js";
+import type { Deletion } from "./types.ts";
 
 interface LanguagePattern {
   extensions: string[];

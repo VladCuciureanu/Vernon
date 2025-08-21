@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { generateObituary } from "../src/obituary-generator.js";
-import type { Deletion, Metadata } from "../src/types.js";
+import { assertEquals, assert, assertNotEquals } from "@std/assert";
+import { generateObituary } from "../src/obituary-generator.ts";
+import type { Deletion, Metadata } from "../src/types.ts";
 
 const mockDeletion: Deletion = {
   type: "function",
@@ -28,60 +28,57 @@ const mockMetadata: Metadata = {
   causeOfDeath: "refactor: move to new query layer",
 };
 
-describe("generateObituary", () => {
-  it("returns an Obituary with all required fields", () => {
+Deno.test("returns an Obituary with all required fields", () => {
+  const result = generateObituary(mockDeletion, mockMetadata);
+  assertEquals(result.deletion, mockDeletion);
+  assertEquals(result.metadata, mockMetadata);
+  assertEquals(typeof result.text, "string");
+  assert(result.text.length > 0);
+  assertEquals(typeof result.timestamp, "string");
+});
+
+Deno.test("includes the function name with () for function deletions", () => {
+  const result = generateObituary(mockDeletion, mockMetadata);
+  assert(result.text.includes("getUserById()"));
+});
+
+Deno.test("includes the file name without () for file deletions", () => {
+  const result = generateObituary(mockFileDeletion, mockMetadata);
+  assert(result.text.includes("utils.ts"));
+  assert(!result.text.includes("utils.ts()"));
+});
+
+Deno.test("interpolates metadata values into the text", () => {
+  const texts: string[] = [];
+  for (let i = 0; i < 50; i++) {
+    texts.push(generateObituary(mockDeletion, mockMetadata).text);
+  }
+  const combined = texts.join(" ");
+
+  assert(combined.includes("2022-03-15"));
+  assert(combined.includes("2026-03-24"));
+  assert(combined.includes("refactor: move to new query layer"));
+});
+
+Deno.test("does not contain uninterpolated placeholders", () => {
+  for (let i = 0; i < 20; i++) {
     const result = generateObituary(mockDeletion, mockMetadata);
-    expect(result.deletion).toBe(mockDeletion);
-    expect(result.metadata).toBe(mockMetadata);
-    expect(typeof result.text).toBe("string");
-    expect(result.text.length).toBeGreaterThan(0);
-    expect(typeof result.timestamp).toBe("string");
-  });
+    assertEquals(
+      result.text.match(/\{(name|birthDate|deathDate|author|lastEditor|commitCount|linesOfCode|commitMessage)\}/),
+      null,
+    );
+  }
+});
 
-  it("includes the function name with () for function deletions", () => {
-    const result = generateObituary(mockDeletion, mockMetadata);
-    expect(result.text).toContain("getUserById()");
-  });
+Deno.test("produces varied output (randomness check)", () => {
+  const uniqueTexts = new Set<string>();
+  for (let i = 0; i < 30; i++) {
+    uniqueTexts.add(generateObituary(mockDeletion, mockMetadata).text);
+  }
+  assert(uniqueTexts.size > 5);
+});
 
-  it("includes the file name without () for file deletions", () => {
-    const result = generateObituary(mockFileDeletion, mockMetadata);
-    expect(result.text).toContain("utils.ts");
-    expect(result.text).not.toContain("utils.ts()");
-  });
-
-  it("interpolates metadata values into the text", () => {
-    // Run multiple times to increase chance of hitting templates with each var
-    const texts: string[] = [];
-    for (let i = 0; i < 50; i++) {
-      texts.push(generateObituary(mockDeletion, mockMetadata).text);
-    }
-    const combined = texts.join(" ");
-
-    // These should appear in at least some of the generated texts
-    expect(combined).toContain("2022-03-15");
-    expect(combined).toContain("2026-03-24");
-    expect(combined).toContain("refactor: move to new query layer");
-  });
-
-  it("does not contain uninterpolated {placeholders}", () => {
-    for (let i = 0; i < 20; i++) {
-      const result = generateObituary(mockDeletion, mockMetadata);
-      expect(result.text).not.toMatch(/\{(name|birthDate|deathDate|author|lastEditor|commitCount|linesOfCode|commitMessage)\}/);
-    }
-  });
-
-  it("produces varied output (randomness check)", () => {
-    const uniqueTexts = new Set<string>();
-    for (let i = 0; i < 30; i++) {
-      uniqueTexts.add(generateObituary(mockDeletion, mockMetadata).text);
-    }
-    // With 24k+ combinations, 30 runs should produce at least several unique texts
-    expect(uniqueTexts.size).toBeGreaterThan(5);
-  });
-
-  it("returns a valid ISO timestamp", () => {
-    const result = generateObituary(mockDeletion, mockMetadata);
-    expect(() => new Date(result.timestamp)).not.toThrow();
-    expect(new Date(result.timestamp).toISOString()).toBe(result.timestamp);
-  });
+Deno.test("returns a valid ISO timestamp", () => {
+  const result = generateObituary(mockDeletion, mockMetadata);
+  assertEquals(new Date(result.timestamp).toISOString(), result.timestamp);
 });

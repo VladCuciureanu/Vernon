@@ -1,94 +1,88 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { installHook, uninstallHook } from "../src/hook.js";
-import { existsSync, readFileSync, mkdtempSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { writeFileSync, chmodSync } from "node:fs";
+import { assertEquals, assert } from "@std/assert";
+import { existsSync } from "@std/fs";
+import { join } from "@std/path";
+import { installHook, uninstallHook } from "../src/hook.ts";
 
-let tempDir: string;
-let hooksDir: string;
+function makeTempRepo(): string {
+  const dir = Deno.makeTempDirSync({ prefix: "vernon-hook-test-" });
+  const hooksDir = join(dir, ".git", "hooks");
+  Deno.mkdirSync(hooksDir, { recursive: true });
+  return dir;
+}
 
-vi.mock("../src/git.js", () => ({
-  getRepoRoot: () => tempDir,
-}));
+Deno.test("installHook - creates pre-commit hook file", () => {
+  const dir = makeTempRepo();
+  installHook(dir);
 
-beforeEach(() => {
-  tempDir = mkdtempSync(join(tmpdir(), "vernon-hook-test-"));
-  hooksDir = join(tempDir, ".git", "hooks");
-  mkdirSync(hooksDir, { recursive: true });
+  const hookPath = join(dir, ".git", "hooks", "pre-commit");
+  assertEquals(existsSync(hookPath), true);
+
+  const content = Deno.readTextFileSync(hookPath);
+  assert(content.includes("#!/bin/sh"));
+  assert(content.includes("# vernon hook"));
+  assert(content.includes("vernon"));
 });
 
-describe("hook", () => {
-  describe("installHook", () => {
-    it("creates pre-commit hook file", () => {
-      installHook();
+Deno.test("installHook - appends to existing hook without overwriting", () => {
+  const dir = makeTempRepo();
+  const hookPath = join(dir, ".git", "hooks", "pre-commit");
+  Deno.writeTextFileSync(hookPath, "#!/bin/sh\nnpx lint-staged\n");
+  Deno.chmodSync(hookPath, 0o755);
 
-      const hookPath = join(hooksDir, "pre-commit");
-      expect(existsSync(hookPath)).toBe(true);
+  installHook(dir);
 
-      const content = readFileSync(hookPath, "utf-8");
-      expect(content).toContain("#!/bin/sh");
-      expect(content).toContain("# vernon hook");
-      expect(content).toContain("npx vernon diff");
-    });
+  const content = Deno.readTextFileSync(hookPath);
+  assert(content.includes("npx lint-staged"));
+  assert(content.includes("# vernon hook"));
+});
 
-    it("appends to existing hook without overwriting", () => {
-      const hookPath = join(hooksDir, "pre-commit");
-      writeFileSync(hookPath, "#!/bin/sh\nnpx lint-staged\n");
-      chmodSync(hookPath, 0o755);
+Deno.test("installHook - does not duplicate when already installed", () => {
+  const dir = makeTempRepo();
+  installHook(dir);
+  installHook(dir);
 
-      installHook();
+  const content = Deno.readTextFileSync(join(dir, ".git", "hooks", "pre-commit"));
+  const matches = content.match(/# vernon hook/g);
+  assertEquals(matches?.length, 1);
+});
 
-      const content = readFileSync(hookPath, "utf-8");
-      expect(content).toContain("npx lint-staged");
-      expect(content).toContain("# vernon hook");
-      expect(content).toContain("npx vernon diff");
-    });
+Deno.test("uninstallHook - removes hook file when only vernon lines present", () => {
+  const dir = makeTempRepo();
+  const hookPath = join(dir, ".git", "hooks", "pre-commit");
+  installHook(dir);
+  assertEquals(existsSync(hookPath), true);
 
-    it("does not duplicate when already installed", () => {
-      installHook();
-      installHook(); // second call
+  uninstallHook(dir);
+  assertEquals(existsSync(hookPath), false);
+});
 
-      const content = readFileSync(join(hooksDir, "pre-commit"), "utf-8");
-      const matches = content.match(/# vernon hook/g);
-      expect(matches).toHaveLength(1);
-    });
-  });
+Deno.test("uninstallHook - preserves other hook content when uninstalling", () => {
+  const dir = makeTempRepo();
+  const hookPath = join(dir, ".git", "hooks", "pre-commit");
+  Deno.writeTextFileSync(
+    hookPath,
+    "#!/bin/sh\nnpx lint-staged\n# vernon hook\ndeno run --allow-run --allow-read --allow-write jsr:@vladcuciureanu/vernon diff\n",
+  );
 
-  describe("uninstallHook", () => {
-    it("removes hook file when only vernon lines present", () => {
-      installHook();
-      const hookPath = join(hooksDir, "pre-commit");
-      expect(existsSync(hookPath)).toBe(true);
+  uninstallHook(dir);
 
-      uninstallHook();
-      expect(existsSync(hookPath)).toBe(false);
-    });
+  const content = Deno.readTextFileSync(hookPath);
+  assert(content.includes("npx lint-staged"));
+  assert(!content.includes("# vernon hook"));
+});
 
-    it("preserves other hook content when uninstalling", () => {
-      const hookPath = join(hooksDir, "pre-commit");
-      writeFileSync(hookPath, "#!/bin/sh\nnpx lint-staged\n# vernon hook\nnpx vernon diff\n");
+Deno.test("uninstallHook - handles missing hook file gracefully", () => {
+  const dir = makeTempRepo();
+  // Should not throw
+  uninstallHook(dir);
+});
 
-      uninstallHook();
+Deno.test("uninstallHook - handles hook without vernon marker gracefully", () => {
+  const dir = makeTempRepo();
+  const hookPath = join(dir, ".git", "hooks", "pre-commit");
+  Deno.writeTextFileSync(hookPath, "#!/bin/sh\nnpx lint-staged\n");
 
-      const content = readFileSync(hookPath, "utf-8");
-      expect(content).toContain("npx lint-staged");
-      expect(content).not.toContain("# vernon hook");
-      expect(content).not.toContain("npx vernon diff");
-    });
-
-    it("handles missing hook file gracefully", () => {
-      // Should not throw
-      expect(() => uninstallHook()).not.toThrow();
-    });
-
-    it("handles hook without vernon marker gracefully", () => {
-      const hookPath = join(hooksDir, "pre-commit");
-      writeFileSync(hookPath, "#!/bin/sh\nnpx lint-staged\n");
-
-      expect(() => uninstallHook()).not.toThrow();
-      const content = readFileSync(hookPath, "utf-8");
-      expect(content).toContain("npx lint-staged");
-    });
-  });
+  uninstallHook(dir);
+  const content = Deno.readTextFileSync(hookPath);
+  assert(content.includes("npx lint-staged"));
 });

@@ -1,4 +1,4 @@
-import type { Deletion, Metadata, Obituary } from "./types.js";
+import type { Deletion, Metadata, Obituary } from "./types.ts";
 
 const FLAVOUR = {
   openings: [

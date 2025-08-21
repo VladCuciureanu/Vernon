@@ -1,20 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { appendToCemetery, readCemetery } from "../src/cemetery.js";
-import type { Obituary } from "../src/types.js";
-import { existsSync, readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { assertEquals, assert } from "@std/assert";
+import { existsSync } from "@std/fs";
+import { join } from "@std/path";
+import { appendToCemetery, readCemetery } from "../src/cemetery.ts";
+import type { Obituary } from "../src/types.ts";
 
-// Mock getRepoRoot to use a temp directory
-vi.mock("../src/git.js", () => ({
-  getRepoRoot: () => tempDir,
-}));
-
-let tempDir: string;
-
-beforeEach(() => {
-  tempDir = mkdtempSync(join(tmpdir(), "vernon-test-"));
-});
+function makeTempDir(): string {
+  return Deno.makeTempDirSync({ prefix: "vernon-test-" });
+}
 
 function makeObituary(overrides: Partial<Obituary> = {}): Obituary {
   return {
@@ -40,104 +32,109 @@ function makeObituary(overrides: Partial<Obituary> = {}): Obituary {
   };
 }
 
-describe("cemetery", () => {
-  describe("appendToCemetery", () => {
-    it("creates CEMETERY.md with header when it does not exist", () => {
-      const cemeteryPath = join(tempDir, "CEMETERY.md");
-      expect(existsSync(cemeteryPath)).toBe(false);
+Deno.test("appendToCemetery - creates CEMETERY.md with header when it does not exist", () => {
+  const dir = makeTempDir();
+  const cemeteryPath = join(dir, "CEMETERY.md");
+  assertEquals(existsSync(cemeteryPath), false);
 
-      appendToCemetery([makeObituary()]);
+  appendToCemetery([makeObituary()], dir);
 
-      expect(existsSync(cemeteryPath)).toBe(true);
-      const content = readFileSync(cemeteryPath, "utf-8");
-      expect(content).toContain("# Code Cemetery");
-      expect(content).toContain("Where deleted code rests in peace");
-    });
+  assertEquals(existsSync(cemeteryPath), true);
+  const content = Deno.readTextFileSync(cemeteryPath);
+  assert(content.includes("# Code Cemetery"));
+  assert(content.includes("Where deleted code rests in peace"));
+});
 
-    it("writes obituary text as blockquote", () => {
-      appendToCemetery([makeObituary()]);
+Deno.test("appendToCemetery - writes obituary text as blockquote", () => {
+  const dir = makeTempDir();
+  appendToCemetery([makeObituary()], dir);
 
-      const content = readFileSync(join(tempDir, "CEMETERY.md"), "utf-8");
-      expect(content).toContain("> Here lies testFunc(). It was a good function.");
-    });
+  const content = Deno.readTextFileSync(join(dir, "CEMETERY.md"));
+  assert(content.includes("> Here lies testFunc(). It was a good function."));
+});
 
-    it("includes function name with path as heading", () => {
-      appendToCemetery([makeObituary()]);
+Deno.test("appendToCemetery - includes function name with path as heading", () => {
+  const dir = makeTempDir();
+  appendToCemetery([makeObituary()], dir);
 
-      const content = readFileSync(join(tempDir, "CEMETERY.md"), "utf-8");
-      expect(content).toContain("### testFunc() (src/test.ts)");
-    });
+  const content = Deno.readTextFileSync(join(dir, "CEMETERY.md"));
+  assert(content.includes("### testFunc() (src/test.ts)"));
+});
 
-    it("uses filePath as heading for file deletions", () => {
-      const obit = makeObituary({
-        deletion: {
-          type: "file",
-          name: "old.ts",
-          filePath: "src/old.ts",
-          language: "javascript",
-          removedLines: [],
-        },
-      });
-      appendToCemetery([obit]);
+Deno.test("appendToCemetery - uses filePath as heading for file deletions", () => {
+  const dir = makeTempDir();
+  const obit = makeObituary({
+    deletion: {
+      type: "file",
+      name: "old.ts",
+      filePath: "src/old.ts",
+      language: "javascript",
+      removedLines: [],
+    },
+  });
+  appendToCemetery([obit], dir);
 
-      const content = readFileSync(join(tempDir, "CEMETERY.md"), "utf-8");
-      expect(content).toContain("### src/old.ts");
-    });
+  const content = Deno.readTextFileSync(join(dir, "CEMETERY.md"));
+  assert(content.includes("### src/old.ts"));
+});
 
-    it("includes a date heading", () => {
-      appendToCemetery([makeObituary()]);
+Deno.test("appendToCemetery - includes a date heading", () => {
+  const dir = makeTempDir();
+  appendToCemetery([makeObituary()], dir);
 
-      const today = new Date().toISOString().split("T")[0];
-      const content = readFileSync(join(tempDir, "CEMETERY.md"), "utf-8");
-      expect(content).toContain(`## ${today}`);
-    });
+  const today = new Date().toISOString().split("T")[0];
+  const content = Deno.readTextFileSync(join(dir, "CEMETERY.md"));
+  assert(content.includes(`## ${today}`));
+});
 
-    it("appends to existing CEMETERY.md", () => {
-      const cemeteryPath = join(tempDir, "CEMETERY.md");
-      writeFileSync(cemeteryPath, "# Code Cemetery\n\n## 2025-01-01\n\n### old stuff\n\n> old obit\n\n");
+Deno.test("appendToCemetery - appends to existing CEMETERY.md", () => {
+  const dir = makeTempDir();
+  const cemeteryPath = join(dir, "CEMETERY.md");
+  Deno.writeTextFileSync(cemeteryPath, "# Code Cemetery\n\n## 2025-01-01\n\n### old stuff\n\n> old obit\n\n");
 
-      appendToCemetery([makeObituary()]);
+  appendToCemetery([makeObituary()], dir);
 
-      const content = readFileSync(cemeteryPath, "utf-8");
-      expect(content).toContain("### old stuff");
-      expect(content).toContain("### testFunc() (src/test.ts)");
-    });
+  const content = Deno.readTextFileSync(cemeteryPath);
+  assert(content.includes("### old stuff"));
+  assert(content.includes("### testFunc() (src/test.ts)"));
+});
 
-    it("handles multiple obituaries", () => {
-      const obit1 = makeObituary({ text: "Obit one." });
-      const obit2 = makeObituary({
-        deletion: {
-          type: "function",
-          name: "anotherFunc",
-          filePath: "src/other.ts",
-          language: "javascript",
-          removedLines: [],
-        },
-        text: "Obit two.",
-      });
-
-      appendToCemetery([obit1, obit2]);
-
-      const content = readFileSync(join(tempDir, "CEMETERY.md"), "utf-8");
-      expect(content).toContain("> Obit one.");
-      expect(content).toContain("> Obit two.");
-      expect(content).toContain("### anotherFunc() (src/other.ts)");
-    });
-
-    it("does nothing for empty array", () => {
-      appendToCemetery([]);
-      expect(existsSync(join(tempDir, "CEMETERY.md"))).toBe(false);
-    });
+Deno.test("appendToCemetery - handles multiple obituaries", () => {
+  const dir = makeTempDir();
+  const obit1 = makeObituary({ text: "Obit one." });
+  const obit2 = makeObituary({
+    deletion: {
+      type: "function",
+      name: "anotherFunc",
+      filePath: "src/other.ts",
+      language: "javascript",
+      removedLines: [],
+    },
+    text: "Obit two.",
   });
 
-  describe("readCemetery", () => {
-    it("returns null when no cemetery exists", () => {
-      expect(readCemetery()).toBeNull();
-    });
+  appendToCemetery([obit1, obit2], dir);
 
-    it("returns content when cemetery exists", () => {
-      writeFileSync(join(tempDir, "CEMETERY.md"), "# Code Cemetery\nstuff");
-      expect(readCemetery()).toContain("# Code Cemetery");
-    });
-  });
+  const content = Deno.readTextFileSync(join(dir, "CEMETERY.md"));
+  assert(content.includes("> Obit one."));
+  assert(content.includes("> Obit two."));
+  assert(content.includes("### anotherFunc() (src/other.ts)"));
+});
+
+Deno.test("appendToCemetery - does nothing for empty array", () => {
+  const dir = makeTempDir();
+  appendToCemetery([], dir);
+  assertEquals(existsSync(join(dir, "CEMETERY.md")), false);
+});
+
+Deno.test("readCemetery - returns null when no cemetery exists", () => {
+  const dir = makeTempDir();
+  assertEquals(readCemetery(dir), null);
+});
+
+Deno.test("readCemetery - returns content when cemetery exists", () => {
+  const dir = makeTempDir();
+  Deno.writeTextFileSync(join(dir, "CEMETERY.md"), "# Code Cemetery\nstuff");
+  const content = readCemetery(dir);
+  assert(content?.includes("# Code Cemetery"));
 });

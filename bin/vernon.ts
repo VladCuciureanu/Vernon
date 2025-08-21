@@ -1,3 +1,3 @@
-#!/usr/bin/env node
-import { run } from "../src/cli.js";
-run(process.argv.slice(2));
+#!/usr/bin/env -S deno run --allow-run --allow-read --allow-write
+import { run } from "../src/cli.ts";
+run(Deno.args);

@@ -1,8 +1,11 @@
-import { execSync } from "node:child_process";
-
 function run(cmd: string): string {
   try {
-    return execSync(cmd, { encoding: "utf-8", maxBuffer: 10 * 1024 * 1024 }).trim();
+    const { stdout } = new Deno.Command("sh", {
+      args: ["-c", cmd],
+      stdout: "piped",
+      stderr: "piped",
+    }).outputSync();
+    return new TextDecoder().decode(stdout).trim();
   } catch {
     return "";
   }
@@ -48,7 +51,6 @@ export function getLatestCommitMessage(): string {
 }
 
 export function getFileContentBeforeDeletion(filePath: string): string | null {
-  // Try HEAD first, then HEAD~1 for staged deletions
   let result = run(`git show HEAD:"${filePath}"`);
   if (!result) {
     result = run(`git show HEAD~1:"${filePath}"`);
