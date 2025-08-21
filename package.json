@@ -1,0 +1,20 @@
+{
+  "name": "vernon",
+  "version": "1.0.0",
+  "description": "Generate humorous obituaries for deleted code using git history",
+  "type": "module",
+  "bin": {
+    "vernon": "./dist/bin/vernon.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "node --import tsx bin/code-obituary.ts"
+  },
+  "keywords": ["git", "cli", "obituary", "code-cemetery"],
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0"
+  }
+}
