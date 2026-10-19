@@ -5,6 +5,13 @@ interface LanguagePattern {
   patterns: RegExp[];
 }
 
+// Keywords that look like `name(...) {` but are control flow, not definitions.
+const CONTROL_FLOW_KEYWORDS = new Set([
+  "if", "else", "for", "foreach", "while", "do", "switch", "case", "catch",
+  "try", "finally", "with", "return", "throw", "typeof", "await", "yield",
+  "elif", "elsif", "unless", "until", "synchronized",
+]);
+
 const LANGUAGES: Record<string, LanguagePattern> = {
   javascript: {
     extensions: [".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs"],
@@ -81,7 +88,7 @@ export function detectDeletedFunctions(
   for (const line of removedLines) {
     for (const pattern of langDef.patterns) {
       const match = line.match(pattern);
-      if (match?.[1] && !seen.has(match[1])) {
+      if (match?.[1] && !CONTROL_FLOW_KEYWORDS.has(match[1]) && !seen.has(match[1])) {
         seen.add(match[1]);
         deletions.push({
           type: "function",

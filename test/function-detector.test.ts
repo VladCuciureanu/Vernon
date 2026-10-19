@@ -143,3 +143,29 @@ test("returns empty for unknown languages", () => {
   const result = detectDeletedFunctions(["some random text"], "data.csv");
   assert.deepEqual(result.length, 0);
 });
+
+// Control-flow keywords
+test("JS/TS - does not detect control-flow statements as functions", () => {
+  const lines = [
+    "if (x) {",
+    "for (let i = 0; i < n; i++) {",
+    "while (running) {",
+    "switch (kind) {",
+    "catch (err) {",
+    "  } catch (err) {",
+    "with (obj) {",
+  ];
+  const result = detectDeletedFunctions(lines, "src/a.ts");
+  assert.deepEqual(result.length, 0);
+});
+
+test("JS/TS - still detects real functions alongside control flow", () => {
+  const lines = [
+    "function handle(req) {",
+    "  if (req.ok) {",
+    "    for (const x of req.items) {",
+    "  render(props) {",
+  ];
+  const result = detectDeletedFunctions(lines, "src/a.ts");
+  assert.deepEqual(result.map((d) => d.name), ["handle", "render"]);
+});
