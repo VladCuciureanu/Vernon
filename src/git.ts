@@ -1,58 +1,60 @@
 import { spawnSync } from "node:child_process";
 
-function run(cmd: string): string {
-  const { stdout, error } = spawnSync("sh", ["-c", cmd], { encoding: "utf8", maxBuffer: Infinity });
-  if (error) return "";
+// Runs git directly with an argument array (no shell), so file paths and refs
+// are passed literally and cannot inject shell commands.
+function git(args: string[]): string {
+  const { stdout, error, status } = spawnSync("git", args, { encoding: "utf8", maxBuffer: Infinity });
+  if (error || status !== 0) return "";
   return stdout.trim();
 }
 
 export function isInsideGitRepo(): boolean {
-  return run("git rev-parse --is-inside-work-tree") === "true";
+  return git(["rev-parse", "--is-inside-work-tree"]) === "true";
 }
 
 export function getStagedDiff(): string {
-  return run("git diff --cached -U0");
+  return git(["diff", "--cached", "-U0"]);
 }
 
 export function getCommitDiff(ref?: string): string {
   const range = ref ?? "HEAD~1..HEAD";
-  return run(`git diff ${range} -U0`);
+  return git(["diff", "-U0", "--end-of-options", range]);
 }
 
 export function getFileCreationDate(filePath: string): string | null {
-  const result = run(`git log --follow --diff-filter=A --format=%aI -- "${filePath}"`);
+  const result = git(["log", "--follow", "--diff-filter=A", "--format=%aI", "--", filePath]);
   const lines = result.split("\n").filter(Boolean);
   return lines.length > 0 ? lines[lines.length - 1] : null;
 }
 
 export function getFileAuthor(filePath: string): string | null {
-  const result = run(`git log --follow --diff-filter=A --format=%an -- "${filePath}"`);
+  const result = git(["log", "--follow", "--diff-filter=A", "--format=%an", "--", filePath]);
   const lines = result.split("\n").filter(Boolean);
   return lines.length > 0 ? lines[lines.length - 1] : null;
 }
 
 export function getLastEditor(filePath: string): string | null {
-  const result = run(`git log -1 --format=%an -- "${filePath}"`);
+  const result = git(["log", "-1", "--format=%an", "--", filePath]);
   return result || null;
 }
 
 export function getCommitCount(filePath: string): number {
-  const result = run(`git log --oneline --follow -- "${filePath}"`);
+  const result = git(["log", "--oneline", "--follow", "--", filePath]);
   return result ? result.split("\n").filter(Boolean).length : 0;
 }
 
 export function getLatestCommitMessage(): string {
-  return run("git log -1 --format=%s") || "unknown cause";
+  return git(["log", "-1", "--format=%s"]) || "unknown cause";
 }
 
 export function getFileContentBeforeDeletion(filePath: string): string | null {
-  let result = run(`git show HEAD:"${filePath}"`);
+  let result = git(["show", `HEAD:${filePath}`]);
   if (!result) {
-    result = run(`git show HEAD~1:"${filePath}"`);
+    result = git(["show", `HEAD~1:${filePath}`]);
   }
   return result || null;
 }
 
 export function getRepoRoot(): string {
-  return run("git rev-parse --show-toplevel");
+  return git(["rev-parse", "--show-toplevel"]);
 }
