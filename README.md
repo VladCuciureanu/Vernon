@@ -8,19 +8,35 @@ Your git history is now a cemetery.
 
 ## Install
 
-### From JSR
+Requires Node.js 24 or newer.
 
 ```bash
-deno install -g --allow-run --allow-read --allow-write jsr:@vladcuciureanu/vernon
+npm install -g @vladcuciureanu/vernon
 ```
 
-### Standalone binary
+Or run it without installing:
 
 ```bash
-deno compile --allow-run --allow-read --allow-write --output vernon bin/vernon.ts
+npx @vladcuciureanu/vernon scan
 ```
 
-This produces a single `vernon` binary with zero runtime dependencies.
+Deno users can still use the earlier Deno build published on JSR as `jsr:@vladcuciureanu/vernon`.
+
+### From source
+
+```bash
+npm install
+npm run build
+npm link        # puts `vernon` on your PATH
+```
+
+## Development
+
+```bash
+npm test            # run the test suite (node:test)
+npm run typecheck   # tsc
+npm run dev -- scan --dry-run   # run from source via Node's type stripping
+```
 
 ## Usage
 
@@ -95,14 +111,14 @@ vernon hook install    # writes to .git/hooks/pre-commit
 vernon hook uninstall  # removes it
 ```
 
-This appends a `deno run` command to your pre-commit hook. If a hook already exists, it won't overwrite it — just appends.
+This appends an `npx @vladcuciureanu/vernon diff` command to your pre-commit hook. If a hook already exists, it won't overwrite it — just appends.
 
 ### Manual hook
 
 Add this to `.git/hooks/pre-commit` (or your hook runner of choice):
 
 ```bash
-deno run --allow-run --allow-read --allow-write jsr:@vladcuciureanu/vernon diff
+npx @vladcuciureanu/vernon diff
 ```
 
 ## Supported Languages

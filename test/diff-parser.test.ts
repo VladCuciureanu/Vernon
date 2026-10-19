@@ -1,12 +1,13 @@
-import { assertEquals, assert } from "@std/assert";
+import { test } from "node:test";
+import assert from "node:assert/strict";
 import { parseDiff } from "../src/diff-parser.ts";
 
-Deno.test("parseDiff - returns empty array for empty diff", () => {
-  assertEquals(parseDiff(""), []);
-  assertEquals(parseDiff("  \n  "), []);
+test("parseDiff - returns empty array for empty diff", () => {
+  assert.deepEqual(parseDiff(""), []);
+  assert.deepEqual(parseDiff("  \n  "), []);
 });
 
-Deno.test("parseDiff - detects a deleted file", () => {
+test("parseDiff - detects a deleted file", () => {
   const diff = `diff --git a/src/utils.ts b/src/utils.ts
 deleted file mode 100644
 index abc1234..0000000
@@ -18,15 +19,15 @@ index abc1234..0000000
 -}
 `;
   const result = parseDiff(diff);
-  assertEquals(result.length, 1);
-  assertEquals(result[0].type, "file");
-  assertEquals(result[0].name, "utils.ts");
-  assertEquals(result[0].filePath, "src/utils.ts");
-  assertEquals(result[0].language, "javascript");
-  assertEquals(result[0].removedLines.length, 3);
+  assert.deepEqual(result.length, 1);
+  assert.deepEqual(result[0].type, "file");
+  assert.deepEqual(result[0].name, "utils.ts");
+  assert.deepEqual(result[0].filePath, "src/utils.ts");
+  assert.deepEqual(result[0].language, "javascript");
+  assert.deepEqual(result[0].removedLines.length, 3);
 });
 
-Deno.test("parseDiff - detects deleted functions in a modified file", () => {
+test("parseDiff - detects deleted functions in a modified file", () => {
   const diff = `diff --git a/src/api.ts b/src/api.ts
 index abc1234..def5678 100644
 --- a/src/api.ts
@@ -39,14 +40,14 @@ index abc1234..def5678 100644
 -export function deleteUser(id: string) {
 `;
   const result = parseDiff(diff);
-  assert(result.length >= 2);
+  assert.ok(result.length >= 2);
   const names = result.map((d) => d.name);
-  assert(names.includes("getUserById"));
-  assert(names.includes("deleteUser"));
-  assert(result.every((d) => d.type === "function"));
+  assert.ok(names.includes("getUserById"));
+  assert.ok(names.includes("deleteUser"));
+  assert.ok(result.every((d) => d.type === "function"));
 });
 
-Deno.test("parseDiff - handles multiple files in one diff", () => {
+test("parseDiff - handles multiple files in one diff", () => {
   const diff = `diff --git a/src/a.ts b/src/a.ts
 deleted file mode 100644
 index abc..000
@@ -64,11 +65,11 @@ index abc..000
 `;
   const result = parseDiff(diff);
   const fileNames = result.map((d) => d.name);
-  assert(fileNames.includes("a.ts"));
-  assert(fileNames.includes("b.py"));
+  assert.ok(fileNames.includes("a.ts"));
+  assert.ok(fileNames.includes("b.py"));
 });
 
-Deno.test("parseDiff - ignores files with no removals", () => {
+test("parseDiff - ignores files with no removals", () => {
   const diff = `diff --git a/src/new.ts b/src/new.ts
 index 000..abc 100644
 --- /dev/null
@@ -79,10 +80,10 @@ index 000..abc 100644
 +}
 `;
   const result = parseDiff(diff);
-  assertEquals(result.length, 0);
+  assert.deepEqual(result.length, 0);
 });
 
-Deno.test("parseDiff - does not treat --- header as a removed line", () => {
+test("parseDiff - does not treat --- header as a removed line", () => {
   const diff = `diff --git a/src/x.ts b/src/x.ts
 index abc..def 100644
 --- a/src/x.ts
@@ -92,5 +93,5 @@ index abc..def 100644
 `;
   const result = parseDiff(diff);
   const allRemoved = result.flatMap((d) => d.removedLines);
-  assert(allRemoved.every((l) => !l.startsWith("-- ")));
+  assert.ok(allRemoved.every((l) => !l.startsWith("-- ")));
 });

@@ -1,14 +1,9 @@
+import { spawnSync } from "node:child_process";
+
 function run(cmd: string): string {
-  try {
-    const { stdout } = new Deno.Command("sh", {
-      args: ["-c", cmd],
-      stdout: "piped",
-      stderr: "piped",
-    }).outputSync();
-    return new TextDecoder().decode(stdout).trim();
-  } catch {
-    return "";
-  }
+  const { stdout, error } = spawnSync("sh", ["-c", cmd], { encoding: "utf8", maxBuffer: Infinity });
+  if (error) return "";
+  return stdout.trim();
 }
 
 export function isInsideGitRepo(): boolean {

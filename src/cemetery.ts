@@ -1,12 +1,12 @@
-import { join } from "@std/path";
-import { existsSync } from "@std/fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Obituary } from "./types.ts";
 import { getRepoRoot } from "./git.ts";
 
 const HEADER = "# Code Cemetery\n\n> Where deleted code rests in peace.\n";
 
 function getCemeteryPath(repoRoot?: string): string {
-  const root = repoRoot ?? (getRepoRoot() || Deno.cwd());
+  const root = repoRoot ?? (getRepoRoot() || process.cwd());
   return join(root, "CEMETERY.md");
 }
 
@@ -17,7 +17,7 @@ export function appendToCemetery(obituaries: Obituary[], repoRoot?: string): voi
   let existing = "";
 
   if (existsSync(path)) {
-    existing = Deno.readTextFileSync(path);
+    existing = readFileSync(path, "utf8");
   } else {
     existing = HEADER;
   }
@@ -40,11 +40,11 @@ export function appendToCemetery(obituaries: Obituary[], repoRoot?: string): voi
     section += `> ${obit.text}\n\n`;
   }
 
-  Deno.writeTextFileSync(path, existing + section);
+  writeFileSync(path, existing + section);
 }
 
 export function readCemetery(repoRoot?: string): string | null {
   const path = getCemeteryPath(repoRoot);
   if (!existsSync(path)) return null;
-  return Deno.readTextFileSync(path);
+  return readFileSync(path, "utf8");
 }

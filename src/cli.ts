@@ -88,7 +88,7 @@ export function run(args: readonly string[]): void {
 
   if (!isInsideGitRepo()) {
     console.error("Not inside a git repository.");
-    Deno.exit(1);
+    process.exit(1);
   }
 
   let rawDiff: string;
