@@ -32,10 +32,49 @@ function strictParse(args: readonly string[]) {
     return parseArgs({ args: [...args], options: OPTIONS, strict: true, allowPositionals: true });
   } catch (err) {
     if (!(err instanceof TypeError)) throw err;
-    // node:util's messages run on with advice about `--`; keep the first sentence.
-    const message = err.message.split(/\.\s|\n/)[0];
+    const ambiguous = / argument is ambiguous\b/.test(err.message)
+      ? findAmbiguousValue(args)
+      : undefined;
+    if (ambiguous) {
+      const { rawName, value } = ambiguous;
+      // `--limit --verbose` almost certainly means the value was left out.
+      if (value.startsWith("--")) throw new UsageError(`option '${rawName}' needs a value`);
+      throw new UsageError(
+        `option '${rawName}' got '${value}', which looks like an option; write ${rawName}=${value}`,
+      );
+    }
+    // node:util's messages can run over several lines with advice about `--`;
+    // keep the first sentence of the first line, without its trailing periods.
+    const message = err.message.split("\n")[0].split(/\.\s/)[0].trim().replace(/\.+$/, "");
     throw new UsageError(message.charAt(0).toLowerCase() + message.slice(1));
   }
+}
+
+// In strict mode parseArgs rejects a string option whose value is a separate
+// argument starting with `-` (`--limit -1`). Lenient parsing takes it as the
+// value, which gives the option and value to name in the error.
+function findAmbiguousValue(
+  args: readonly string[],
+): { rawName: string; value: string } | undefined {
+  const { tokens } = parseArgs({
+    args: [...args],
+    options: OPTIONS,
+    strict: false,
+    allowPositionals: true,
+    tokens: true,
+  });
+  for (const token of tokens) {
+    if (
+      token.kind === "option" &&
+      Object.hasOwn(OPTIONS, token.name) &&
+      OPTIONS[token.name as keyof typeof OPTIONS].type === "string" &&
+      !token.inlineValue &&
+      token.value?.startsWith("-")
+    ) {
+      return { rawName: token.rawName, value: token.value };
+    }
+  }
+  return undefined;
 }
 
 // The options each command accepts, besides --help and --version.
