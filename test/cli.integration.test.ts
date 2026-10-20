@@ -133,3 +133,36 @@ test("cli - --limit must be a positive integer", { skip }, () => {
   assert.deepEqual(ok.status, 0, ok.stderr);
   assert.match(ok.stdout, /doomed\(\)/);
 });
+
+test("cli - options that don't apply to the command are usage errors", { skip }, () => {
+  const { dir } = makeRepo();
+  assertUsageError(vernon(dir, "diff", "--ref", "HEAD~2"), /--ref does not apply to diff/);
+  assertUsageError(vernon(dir, "mourn", "api.ts", "--limit", "1"), /--limit does not apply/);
+  assertUsageError(vernon(dir, "history", "--verbose"), /--verbose does not apply/);
+  assertUsageError(vernon(dir, "hook", "install", "--dry-run"), /--dry-run does not apply/);
+  assert.deepEqual(existsSync(join(dir, ".git", "hooks", "pre-commit")), false);
+});
+
+test("cli - mourn without a path is a usage error, not a scan", { skip }, () => {
+  const { dir } = makeRepo();
+  assertUsageError(vernon(dir, "mourn", "--ref", "HEAD~2..HEAD", "--dry-run"), /mourn needs/);
+});
+
+test("cli - hook without a valid action is a usage error on stderr", { skip }, () => {
+  const { dir } = makeRepo();
+  assertUsageError(vernon(dir, "hook"), /hook needs an action/);
+  assertUsageError(vernon(dir, "hook", "instal"), /unknown hook action 'instal'/);
+});
+
+test("cli - extra arguments are usage errors", { skip }, () => {
+  const { dir } = makeRepo();
+  assertUsageError(vernon(dir, "scan", "HEAD~2"), /unexpected argument 'HEAD~2'/);
+  assertUsageError(vernon(dir, "mourn", "a.ts", "b.ts"), /unexpected argument 'b\.ts'/);
+});
+
+test("cli - --help works with any command", { skip }, () => {
+  const { dir } = makeRepo();
+  const result = vernon(dir, "hook", "--help");
+  assert.deepEqual(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Commands:/);
+});

@@ -50,7 +50,7 @@ With no command, Vernon runs `scan`. Obituaries are printed to stdout and append
 | `--verbose` | `scan`, `diff`, `mourn` | List each detected deletion, and say when none were found or the limit cut some off |
 | `-h`, `--help` | all | Show help |
 
-Errors are printed to stderr as a single `vernon: ...` line. Outside a git repository, `scan`, `diff` and `mourn` exit with status 1, and so does a git error (for example an unknown ref). A usage error (an unknown command or option, an option missing its value, or a `--limit` that isn't a positive integer) also prints a short usage line and exits with status 2.
+Errors are printed to stderr as a single `vernon: ...` line. Outside a git repository, `scan`, `diff` and `mourn` exit with status 1, and so does a git error (for example an unknown ref). A usage error (an unknown command or option, an option the command doesn't take, an option missing its value, a missing or extra argument, or a `--limit` that isn't a positive integer) also prints a short usage line and exits with status 2.
 
 ### Pre-commit hook
 

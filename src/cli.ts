@@ -36,13 +36,45 @@ function strictParse(args: readonly string[]) {
   }
 }
 
-// Throws UsageError for unknown commands or options, missing option values
-// and a --limit that is not a positive integer.
-function parseCliArgs(args: readonly string[]): CliOptions & { help: boolean } {
+// The options each command accepts, besides --help.
+const COMMAND_OPTIONS: Record<CliOptions["command"], readonly (keyof typeof OPTIONS)[]> = {
+  scan: ["ref", "dry-run", "verbose", "limit"],
+  diff: ["dry-run", "verbose", "limit"],
+  mourn: ["ref", "dry-run", "verbose"],
+  history: [],
+  hook: [],
+};
+
+// Throws UsageError for unknown commands or options, missing option values or
+// arguments, options the command doesn't take, and a --limit that is not a
+// positive integer.
+function parseCliArgs(args: readonly string[]): CliOptions | "help" {
   const { values, positionals } = strictParse(args);
+  if (values.help) return "help";
 
   const [command = "scan", ...rest] = positionals;
   if (!isCommand(command)) throw new UsageError(`unknown command '${command}'`);
+
+  for (const name of Object.keys(values) as (keyof typeof OPTIONS)[]) {
+    if (!COMMAND_OPTIONS[command].includes(name)) {
+      throw new UsageError(`--${name} does not apply to ${command}`);
+    }
+  }
+
+  let hookAction: CliOptions["hookAction"];
+  let mournPath: string | undefined;
+  if (command === "hook") {
+    const action = rest.shift();
+    if (action === undefined) throw new UsageError("hook needs an action: install or uninstall");
+    if (action !== "install" && action !== "uninstall") {
+      throw new UsageError(`unknown hook action '${action}'`);
+    }
+    hookAction = action;
+  } else if (command === "mourn") {
+    mournPath = rest.shift();
+    if (mournPath === undefined) throw new UsageError("mourn needs a <path>");
+  }
+  if (rest.length > 0) throw new UsageError(`unexpected argument '${rest[0]}'`);
 
   let limit = 20;
   if (values.limit !== undefined) {
@@ -52,16 +84,14 @@ function parseCliArgs(args: readonly string[]): CliOptions & { help: boolean } {
     limit = Number(values.limit);
   }
 
-  const hookAction = rest.find((arg) => arg === "install" || arg === "uninstall");
   return {
     command,
     ref: values.ref,
-    hookAction: command === "hook" ? hookAction : undefined,
-    mournPath: command === "mourn" ? rest.at(-1) : undefined,
+    hookAction,
+    mournPath,
     dryRun: values["dry-run"] ?? false,
     verbose: values.verbose ?? false,
     limit,
-    help: values.help ?? false,
   };
 }
 
@@ -78,11 +108,12 @@ Commands:
                            Only mourn deletions in <path> from the latest
                            commit (or --ref)
 
-Options:
+Options (an option a command doesn't take is an error):
   --dry-run                Print obituaries without writing to CEMETERY.md
-  --verbose                Show detection details
+                           (scan, diff, mourn)
+  --verbose                Show detection details (scan, diff, mourn)
   --limit N                Max obituaries to generate, a positive integer
-                           (default: 20)
+                           (default: 20; scan, diff)
   -h, --help               Show this help
 
 Exit status: 0 on success, 1 on a git error or outside a git repository,
@@ -106,7 +137,7 @@ export function run(args: readonly string[]): void {
     return;
   }
 
-  if (opts.help) {
+  if (opts === "help") {
     printUsage();
     return;
   }
@@ -123,8 +154,7 @@ export function run(args: readonly string[]): void {
 
   if (opts.command === "hook") {
     if (opts.hookAction === "install") installHook();
-    else if (opts.hookAction === "uninstall") uninstallHook();
-    else console.log("Usage: vernon hook install|uninstall");
+    else uninstallHook();
     return;
   }
 
