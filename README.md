@@ -34,13 +34,14 @@ An earlier Deno build is published on JSR as `jsr:@vladcuciureanu/vernon`.
 vernon scan                         # deletions in the latest commit (HEAD~1..HEAD)
 vernon scan --ref HEAD~5..HEAD      # deletions in a range
 vernon diff                         # deletions in the staged changes
-vernon mourn src/old-module.ts      # only deletions in this exact path (accepts --ref)
+vernon mourn src/old-module.ts      # only deletions in this file (accepts --ref)
+vernon mourn src/legacy             # only deletions under this directory
 vernon history                      # print CEMETERY.md
 vernon hook install                 # add Vernon to the pre-commit hook
 vernon hook uninstall               # remove it again
 ```
 
-With no command, Vernon runs `scan`. Obituaries are printed to stdout (with a leading icon only when stdout is a terminal, so piped output is plain text) and appended to `CEMETERY.md` at the repository root, under a heading for today's date. Vernon never commits that file; that's up to you.
+With no command, Vernon runs `scan`. `mourn` paths are relative to the repository root, and a directory matches every deletion beneath it; `mourn` shows every match, with no limit. Obituaries are printed to stdout (with a leading icon only when stdout is a terminal, so piped output is plain text) and appended to `CEMETERY.md` at the repository root, under a heading for today's date. Vernon never commits that file; that's up to you.
 
 | Option | Applies to | Description |
 |--------|------------|-------------|

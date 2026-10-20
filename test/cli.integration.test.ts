@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -186,4 +186,28 @@ test("cli - --version prints the package version", { skip }, () => {
 
   assert.deepEqual(result.status, 0, result.stderr);
   assert.deepEqual(result.stdout.trim(), pkg.version);
+});
+
+test("cli - mourn accepts a directory and mourns everything under it", { skip }, () => {
+  const { dir, git } = makeRepo();
+  mkdirSync(join(dir, "lib", "sub"), { recursive: true });
+  writeFileSync(join(dir, "lib", "a.py"), "x = 1\n");
+  writeFileSync(join(dir, "lib", "sub", "b.py"), "y = 2\n");
+  writeFileSync(join(dir, "library.py"), "z = 3\n");
+  git("add", ".");
+  git("commit", "-q", "-m", "add lib");
+  git("rm", "-q", "-r", "lib", "library.py");
+  git("commit", "-q", "-m", "drop lib");
+
+  for (const path of ["lib", "lib/"]) {
+    const result = vernon(dir, "mourn", path, "--dry-run");
+    assert.deepEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /a\.py/);
+    assert.match(result.stdout, /b\.py/);
+    assert.doesNotMatch(result.stdout, /library\.py/);
+  }
+
+  const exact = vernon(dir, "mourn", "lib/a.py", "--dry-run");
+  assert.match(exact.stdout, /a\.py/);
+  assert.doesNotMatch(exact.stdout, /b\.py/);
 });

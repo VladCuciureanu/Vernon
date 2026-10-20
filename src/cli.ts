@@ -109,8 +109,10 @@ Commands:
   history                  Show the cemetery
   hook install|uninstall   Manage pre-commit hook
   mourn <path> [--ref <ref>]
-                           Only mourn deletions in <path> from the latest
-                           commit (or --ref)
+                           Only mourn deletions in <path> (a file, or a
+                           directory and everything under it, relative to
+                           the repository root) from the latest commit
+                           (or --ref)
 
 Options (an option a command doesn't take is an error):
   --dry-run                Print obituaries without writing to CEMETERY.md
@@ -194,7 +196,9 @@ export function run(args: readonly string[]): void {
   let deletions = parseDiff(rawDiff);
   const { mournPath } = opts;
   if (mournPath !== undefined) {
-    deletions = deletions.filter((d) => d.filePath === mournPath);
+    // A file path, or a directory: everything under it.
+    const dir = `${mournPath.replace(/\/+$/, "")}/`;
+    deletions = deletions.filter((d) => d.filePath === mournPath || d.filePath.startsWith(dir));
     if (deletions.length === 0) {
       console.log(`No deletions found for ${mournPath}`);
       return;
