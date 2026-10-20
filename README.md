@@ -1,138 +1,93 @@
 # Vernon
 
-Every time you delete a file or function, **Vernon** writes a short eulogy for it — sourced entirely from your git history.
+Vernon writes obituaries for the files and functions you delete, using your git history for the facts and a set of templates for the grief.
 
-> *"Here lies getUserById(), born March 2022, killed by a refactor. It survived 47 commits before meeting its end. Cause of death: "refactor: move to new query layer". No tests were broken in its removal. Suspicious."*
+```md
+### getUserById() (src/api/users.ts)
 
-Your git history is now a cemetery.
+> Here lies getUserById(), born 2022-03-15, deleted 2026-03-24. Touched by 47 commits and jane's bare hands. Killed by john, with the commit message "refactor: move to new query layer". No tests were broken in its removal. Suspicious.
+```
+
+No AI and no network calls: just `git` and templates.
+
+## Requirements
+
+- Node.js 26 or newer
+- `git` on your PATH
 
 ## Install
 
-Requires Node.js 26 or newer. Vernon isn't on the npm registry yet, so install it from a clone:
+Vernon isn't on the npm registry yet, so install it from a clone:
 
 ```bash
 git clone https://github.com/VladCuciureanu/Vernon.git
 cd Vernon
-npm install     # the `prepare` script compiles to dist/
+npm install     # the prepare script compiles to dist/
 npm link        # puts `vernon` on your PATH
 ```
 
-Deno users can still use the earlier Deno build published on JSR as `jsr:@vladcuciureanu/vernon`.
-
-## Development
-
-```bash
-npm test            # run the test suite (node:test)
-npm run typecheck   # tsc
-npm run dev -- scan --dry-run   # run from source via Node's type stripping
-```
+An earlier Deno build is published on JSR as `jsr:@vladcuciureanu/vernon`.
 
 ## Usage
 
 ```bash
-# Scan the latest commit for deletions
-vernon scan
-
-# Scan staged changes (pre-commit mode)
-vernon diff
-
-# Scan a specific range
-vernon scan --ref HEAD~5..HEAD
-
-# Preview without writing to CEMETERY.md
-vernon scan --dry-run
-
-# View the cemetery
-vernon history
-
-# Only mourn deletions in one file from the latest commit (or --ref)
-vernon mourn src/old-module.ts
-vernon mourn src/old-module.ts --ref HEAD~5..HEAD
-
-# Built-in hook management
-vernon hook install
-vernon hook uninstall
+vernon scan                         # deletions in the latest commit (HEAD~1..HEAD)
+vernon scan --ref HEAD~5..HEAD      # deletions in a range
+vernon diff                         # deletions in the staged changes
+vernon mourn src/old-module.ts      # only deletions in this exact path (accepts --ref)
+vernon history                      # print CEMETERY.md
+vernon hook install                 # add Vernon to the pre-commit hook
+vernon hook uninstall               # remove it again
 ```
 
-### Options
+With no command, Vernon runs `scan`. Obituaries are printed to stdout and appended to `CEMETERY.md` at the repository root, under a heading for today's date. Vernon never commits that file; that's up to you.
 
-| Flag | Description |
-|------|-------------|
-| `--dry-run` | Print obituaries to stdout only |
-| `--verbose` | Show detection details |
-| `--limit N` | Max obituaries per run (default: 20) |
-| `--ref <ref>` | Git ref or range to scan |
+| Option | Applies to | Description |
+|--------|------------|-------------|
+| `--ref <ref>` | `scan`, `mourn` | Revision range to scan (default `HEAD~1..HEAD`). A single ref is compared against the working tree. |
+| `--dry-run` | `scan`, `diff`, `mourn` | Print obituaries without writing `CEMETERY.md` |
+| `--limit <n>` | `scan`, `diff` | Maximum obituaries per run (default 20) |
+| `--verbose` | `scan`, `diff`, `mourn` | List each detected deletion, and say when none were found or the limit cut some off |
+| `-h`, `--help` | all | Show help |
 
-## CEMETERY.md
+Outside a git repository, `scan`, `diff` and `mourn` exit with status 1. A git error (for example an unknown ref) is printed to stderr and also exits 1.
 
-Obituaries are appended to a `CEMETERY.md` file at your repo root:
+### Pre-commit hook
 
-```md
-# Code Cemetery
+`vernon hook install` adds these lines to the `pre-commit` hook in the hooks directory git uses (`core.hooksPath` is respected), creating the hook if needed and inserting before a trailing `exit` in an existing one:
 
-> Where deleted code rests in peace.
-
-## 2026-03-24
-
-### getUserById() (src/api/users.ts)
-
-> Here lies getUserById(), born 2022-03-15, deleted 2026-03-24.
-> Touched by 47 commits and jane's bare hands.
-> Killed by john, with the commit message "refactor: move to new query layer".
-> No tests were broken in its removal. Suspicious.
-
-### src/utils/legacy-parser.js
-
-> Gone but not forgotten: legacy-parser.js.
-> Created 2021-06-01, removed 2026-03-24. It had a good run.
-> Served faithfully across 342 lines of pure logic.
-> The death certificate reads: "chore: remove dead code".
-> 404: Function not found. Forever.
-```
-
-The file is left **uncommitted** so you can include it on your own terms.
-
-## Git Hook Setup
-
-### Built-in
-
-```bash
-vernon hook install    # writes to .git/hooks/pre-commit
-vernon hook uninstall  # removes it
-```
-
-This adds a `vernon diff` line to your pre-commit hook. It runs the globally installed `vernon` (see [Install](#install)), is skipped if `vernon` isn't on your PATH, and never blocks the commit. If a hook already exists, it won't overwrite it — just appends.
-
-### Manual hook
-
-Add this to `.git/hooks/pre-commit` (or your hook runner of choice):
-
-```bash
+```sh
+# vernon hook
 command -v vernon >/dev/null 2>&1 && vernon diff || true
 ```
 
-## Supported Languages
+The hook is skipped when `vernon` isn't on your PATH and never blocks a commit. `vernon hook uninstall` removes only those lines, and deletes the hook if nothing else is left in it. To manage the hook yourself, add the second line to whatever hook runner you use.
 
-Function and class detection works for:
+### What gets detected
 
-| Language | Extensions | What it detects |
-|----------|------------|----------------|
-| JavaScript / TypeScript | `.js` `.ts` `.jsx` `.tsx` `.mjs` `.cjs` | functions, arrow functions, classes, methods |
+Whole-file deletions are detected for every file type. Deleted functions and classes are detected by regex in these languages; a signature that is removed and re-added in the same file (edited or moved) is not counted.
+
+| Language | Extensions | Detects |
+|----------|------------|---------|
+| JavaScript / TypeScript | `.js` `.jsx` `.ts` `.tsx` `.mjs` `.cjs` | functions, arrow functions assigned to variables, classes, methods |
 | Python | `.py` | `def`, `class` |
-| Go | `.go` | `func`, methods with receivers |
+| Go | `.go` | `func`, including methods |
 | Rust | `.rs` | `fn`, `impl` |
-| Java / Kotlin | `.java` `.kt` | methods, classes |
+| Java / Kotlin | `.java` `.kt` | methods with an access modifier, classes |
 | Ruby | `.rb` | `def`, `class` |
 | PHP | `.php` | `function`, `class` |
 
-Whole-file deletions are detected for **all** file types.
+Each obituary combines one line from each of five template pools (24,192 combinations) with the file's creation date, original author, last editor, commit count, line count and the subject of the commit that deleted it.
 
-## How It Works
+## Development
 
-1. **Diff parsing** — reads `git diff` output, finds deleted files and removed hunks
-2. **Function detection** — regex-based, scans removed lines for function/class signatures
-3. **Metadata extraction** — queries `git log` for birth date, original author, commit count, last editor
-4. **Obituary generation** — picks random fragments from 5 flavour pools (24,192 unique combinations), interpolates with real git data
-5. **Cemetery** — appends to `CEMETERY.md`
+```bash
+npm test                        # node:test, test/*.test.ts
+npm run typecheck               # tsc
+npm run build                   # compile to dist/
+npm run dev -- scan --dry-run   # run from source
+```
 
-No AI. No network calls. Just git and templates.
+## License
+
+MIT
