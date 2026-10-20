@@ -91,7 +91,8 @@ function parseCliArgs(args: readonly string[]): CliOptions | "help" {
     mournPath,
     dryRun: values["dry-run"] ?? false,
     verbose: values.verbose ?? false,
-    limit,
+    // mourn takes no --limit and shows every deletion in its path.
+    limit: command === "mourn" ? Infinity : limit,
   };
 }
 
@@ -173,34 +174,23 @@ export function run(args: readonly string[]): void {
     return;
   }
 
-  if (!rawDiff) {
-    if (opts.verbose) console.log("No deletions detected.");
-    return;
-  }
-
-  const deletions = parseDiff(rawDiff);
-
-  if (opts.command === "mourn" && opts.mournPath) {
-    const filtered = deletions.filter((d) => d.filePath === opts.mournPath);
-    if (filtered.length === 0) {
-      console.log(`No deletions found for ${opts.mournPath}`);
+  let deletions = parseDiff(rawDiff);
+  const { mournPath } = opts;
+  if (mournPath !== undefined) {
+    deletions = deletions.filter((d) => d.filePath === mournPath);
+    if (deletions.length === 0) {
+      console.log(`No deletions found for ${mournPath}`);
       return;
     }
-    processObituaries(filtered, opts);
-    return;
-  }
-
-  if (deletions.length === 0) {
+  } else if (deletions.length === 0) {
     if (opts.verbose) console.log("No deletions detected.");
     return;
   }
 
-  const limited = deletions.slice(0, opts.limit);
   if (opts.verbose && deletions.length > opts.limit) {
     console.log(`Found ${deletions.length} deletions, showing first ${opts.limit}.`);
   }
-
-  processObituaries(limited, opts);
+  processObituaries(deletions.slice(0, opts.limit), opts);
 }
 
 function processObituaries(deletions: Deletion[], opts: CliOptions): void {
@@ -214,8 +204,6 @@ function processObituaries(deletions: Deletion[], opts: CliOptions): void {
     const metadata = enrich(d);
     return generateObituary(d, metadata);
   });
-
-  if (obituaries.length === 0) return;
 
   console.log("");
   for (const obit of obituaries) {
