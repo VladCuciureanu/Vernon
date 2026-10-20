@@ -1,6 +1,6 @@
 {
   "name": "@vladcuciureanu/vernon",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Generate humorous obituaries for deleted code using git history",
   "license": "MIT",
   "type": "module",
