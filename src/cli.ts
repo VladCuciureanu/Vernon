@@ -1,7 +1,7 @@
-import type { CliOptions, Deletion } from "./types.ts";
-import { isInsideGitRepo, getStagedDiff, getCommitDiff } from "./git.ts";
+import type { CliOptions, Deletion, DiffSource } from "./types.ts";
+import { isInsideGitRepo, getStagedDiff, getCommitDiff, GitError } from "./git.ts";
 import { parseDiff } from "./diff-parser.ts";
-import { enrichDeletion } from "./metadata.ts";
+import { createEnricher } from "./metadata.ts";
 import { generateObituary } from "./obituary-generator.ts";
 import { appendToCemetery, readCemetery } from "./cemetery.ts";
 import { installHook, uninstallHook } from "./hook.ts";
@@ -52,7 +52,9 @@ Commands:
   diff                     Scan staged changes (pre-commit mode)
   history                  Show the cemetery
   hook install|uninstall   Manage pre-commit hook
-  mourn <path>             Write obituary for a file
+  mourn <path> [--ref <ref>]
+                           Only mourn deletions in <path> from the latest
+                           commit (or --ref)
 
 Options:
   --dry-run                Print obituaries without writing to CEMETERY.md
@@ -88,17 +90,18 @@ export function run(args: readonly string[]): void {
 
   if (!isInsideGitRepo()) {
     console.error("Not inside a git repository.");
-    Deno.exit(1);
+    process.exit(1);
   }
 
   let rawDiff: string;
 
-  if (opts.command === "diff") {
-    rawDiff = getStagedDiff();
-  } else if (opts.command === "mourn" && opts.mournPath) {
-    rawDiff = getCommitDiff(opts.ref);
-  } else {
-    rawDiff = getCommitDiff(opts.ref);
+  try {
+    rawDiff = opts.command === "diff" ? getStagedDiff() : getCommitDiff(opts.ref);
+  } catch (err) {
+    if (!(err instanceof GitError)) throw err;
+    console.error(`vernon: ${err.message}`);
+    process.exitCode = 1;
+    return;
   }
 
   if (!rawDiff) {
@@ -132,11 +135,13 @@ export function run(args: readonly string[]): void {
 }
 
 function processObituaries(deletions: Deletion[], opts: CliOptions): void {
+  const source: DiffSource = opts.command === "diff" ? { kind: "staged" } : { kind: "commits", ref: opts.ref };
+  const enrich = createEnricher(source);
   const obituaries = deletions.map((d) => {
     if (opts.verbose) {
       console.log(`  [${d.type}] ${d.name} (${d.filePath})`);
     }
-    const metadata = enrichDeletion(d);
+    const metadata = enrich(d);
     return generateObituary(d, metadata);
   });
 

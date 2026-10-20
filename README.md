@@ -8,19 +8,24 @@ Your git history is now a cemetery.
 
 ## Install
 
-### From JSR
+Requires Node.js 24 or newer. Vernon isn't on the npm registry yet, so install it from a clone:
 
 ```bash
-deno install -g --allow-run --allow-read --allow-write jsr:@vladcuciureanu/vernon
+git clone https://github.com/VladCuciureanu/Vernon.git
+cd Vernon
+npm install     # the `prepare` script compiles to dist/
+npm link        # puts `vernon` on your PATH
 ```
 
-### Standalone binary
+Deno users can still use the earlier Deno build published on JSR as `jsr:@vladcuciureanu/vernon`.
+
+## Development
 
 ```bash
-deno compile --allow-run --allow-read --allow-write --output vernon bin/vernon.ts
+npm test            # run the test suite (node:test)
+npm run typecheck   # tsc
+npm run dev -- scan --dry-run   # run from source via Node's type stripping
 ```
-
-This produces a single `vernon` binary with zero runtime dependencies.
 
 ## Usage
 
@@ -40,8 +45,9 @@ vernon scan --dry-run
 # View the cemetery
 vernon history
 
-# Manually mourn a specific file
+# Only mourn deletions in one file from the latest commit (or --ref)
 vernon mourn src/old-module.ts
+vernon mourn src/old-module.ts --ref HEAD~5..HEAD
 
 # Built-in hook management
 vernon hook install
@@ -95,14 +101,14 @@ vernon hook install    # writes to .git/hooks/pre-commit
 vernon hook uninstall  # removes it
 ```
 
-This appends a `deno run` command to your pre-commit hook. If a hook already exists, it won't overwrite it — just appends.
+This adds a `vernon diff` line to your pre-commit hook. It runs the globally installed `vernon` (see [Install](#install)), is skipped if `vernon` isn't on your PATH, and never blocks the commit. If a hook already exists, it won't overwrite it — just appends.
 
 ### Manual hook
 
 Add this to `.git/hooks/pre-commit` (or your hook runner of choice):
 
 ```bash
-deno run --allow-run --allow-read --allow-write jsr:@vladcuciureanu/vernon diff
+command -v vernon >/dev/null 2>&1 && vernon diff || true
 ```
 
 ## Supported Languages

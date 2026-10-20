@@ -1,4 +1,5 @@
-import { assertEquals, assert, assertNotEquals } from "@std/assert";
+import { test } from "node:test";
+import assert from "node:assert/strict";
 import { generateObituary } from "../src/obituary-generator.ts";
 import type { Deletion, Metadata } from "../src/types.ts";
 
@@ -28,57 +29,69 @@ const mockMetadata: Metadata = {
   causeOfDeath: "refactor: move to new query layer",
 };
 
-Deno.test("returns an Obituary with all required fields", () => {
+test("returns an Obituary with all required fields", () => {
   const result = generateObituary(mockDeletion, mockMetadata);
-  assertEquals(result.deletion, mockDeletion);
-  assertEquals(result.metadata, mockMetadata);
-  assertEquals(typeof result.text, "string");
-  assert(result.text.length > 0);
-  assertEquals(typeof result.timestamp, "string");
+  assert.deepEqual(result.deletion, mockDeletion);
+  assert.deepEqual(result.metadata, mockMetadata);
+  assert.deepEqual(typeof result.text, "string");
+  assert.ok(result.text.length > 0);
+  assert.deepEqual(typeof result.timestamp, "string");
 });
 
-Deno.test("includes the function name with () for function deletions", () => {
+test("includes the function name with () for function deletions", () => {
   const result = generateObituary(mockDeletion, mockMetadata);
-  assert(result.text.includes("getUserById()"));
+  assert.ok(result.text.includes("getUserById()"));
 });
 
-Deno.test("includes the file name without () for file deletions", () => {
+test("includes the file name without () for file deletions", () => {
   const result = generateObituary(mockFileDeletion, mockMetadata);
-  assert(result.text.includes("utils.ts"));
-  assert(!result.text.includes("utils.ts()"));
+  assert.ok(result.text.includes("utils.ts"));
+  assert.ok(!result.text.includes("utils.ts()"));
 });
 
-Deno.test("interpolates metadata values into the text", () => {
-  const texts: string[] = [];
-  for (let i = 0; i < 50; i++) {
-    texts.push(generateObituary(mockDeletion, mockMetadata).text);
-  }
-  const combined = texts.join(" ");
+// Returns rng functions that pick index i/n of every pool, covering each pool
+// entry deterministically.
+function sweep(steps: number): (() => number)[] {
+  return Array.from({ length: steps }, (_, i) => () => i / steps);
+}
 
-  assert(combined.includes("2022-03-15"));
-  assert(combined.includes("2026-03-24"));
-  assert(combined.includes("refactor: move to new query layer"));
+test("interpolates metadata values into the text", () => {
+  const combined = sweep(50)
+    .map((rng) => generateObituary(mockDeletion, mockMetadata, rng).text)
+    .join(" ");
+
+  assert.ok(combined.includes("2022-03-15"));
+  assert.ok(combined.includes("2026-03-24"));
+  assert.ok(combined.includes("refactor: move to new query layer"));
 });
 
-Deno.test("does not contain uninterpolated placeholders", () => {
-  for (let i = 0; i < 20; i++) {
-    const result = generateObituary(mockDeletion, mockMetadata);
-    assertEquals(
+test("does not contain uninterpolated placeholders", () => {
+  for (const rng of sweep(50)) {
+    const result = generateObituary(mockDeletion, mockMetadata, rng);
+    assert.deepEqual(
       result.text.match(/\{(name|birthDate|deathDate|author|lastEditor|commitCount|linesOfCode|commitMessage)\}/),
       null,
     );
   }
 });
 
-Deno.test("produces varied output (randomness check)", () => {
-  const uniqueTexts = new Set<string>();
-  for (let i = 0; i < 30; i++) {
-    uniqueTexts.add(generateObituary(mockDeletion, mockMetadata).text);
-  }
-  assert(uniqueTexts.size > 5);
+test("picks fragments using the injected rng", () => {
+  const first = generateObituary(mockDeletion, mockMetadata, () => 0).text;
+  const last = generateObituary(mockDeletion, mockMetadata, () => 0.999999).text;
+
+  assert.ok(first.startsWith("Here lies getUserById(),"));
+  assert.ok(first.endsWith("It never threw an uncaught exception."));
+  assert.ok(last.startsWith("A moment of silence for getUserById()."));
+  assert.ok(last.endsWith("404: Function not found. Forever."));
+  assert.deepEqual(generateObituary(mockDeletion, mockMetadata, () => 0).text, first);
 });
 
-Deno.test("returns a valid ISO timestamp", () => {
+test("produces varied output across rng values", () => {
+  const uniqueTexts = new Set(sweep(30).map((rng) => generateObituary(mockDeletion, mockMetadata, rng).text));
+  assert.ok(uniqueTexts.size > 5);
+});
+
+test("returns a valid ISO timestamp", () => {
   const result = generateObituary(mockDeletion, mockMetadata);
-  assertEquals(new Date(result.timestamp).toISOString(), result.timestamp);
+  assert.deepEqual(new Date(result.timestamp).toISOString(), result.timestamp);
 });

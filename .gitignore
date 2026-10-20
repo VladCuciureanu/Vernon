@@ -1,2 +1,4 @@
 vernon
 .herodotus.toml
+node_modules/
+dist/

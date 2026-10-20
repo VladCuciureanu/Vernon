@@ -1,0 +1,31 @@
+{
+  "name": "@vladcuciureanu/vernon",
+  "version": "1.0.0",
+  "description": "Generate humorous obituaries for deleted code using git history",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "vernon": "./dist/bin/vernon.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node bin/vernon.ts",
+    "dev": "node bin/vernon.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "typescript": "^7.0.2"
+  }
+}

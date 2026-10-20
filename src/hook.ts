@@ -1,13 +1,36 @@
-import { join } from "@std/path";
-import { existsSync } from "@std/fs";
-import { getRepoRoot } from "./git.ts";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { getHooksDir, getRepoRoot } from "./git.ts";
 
 const HOOK_MARKER = "# vernon hook";
-const HOOK_COMMAND = "deno run --allow-run --allow-read --allow-write jsr:@vladcuciureanu/vernon diff";
+// Runs the globally installed `vernon` bin, so the hook works without the
+// package being published to a registry. Obituaries are a side show: the hook
+// skips when vernon isn't installed and never blocks the commit.
+const HOOK_COMMAND = "command -v vernon >/dev/null 2>&1 && vernon diff || true";
+// Commands written by earlier versions of Vernon (Deno build, npx, bare bin);
+// still removed on uninstall.
+const LEGACY_HOOK_COMMANDS = [
+  "deno run --allow-run --allow-read --allow-write jsr:@vladcuciureanu/vernon diff",
+  "npx @vladcuciureanu/vernon diff",
+  "vernon diff",
+];
 
 function getHookPath(repoRoot?: string): string {
-  const root = repoRoot ?? (getRepoRoot() || Deno.cwd());
-  return join(root, ".git", "hooks", "pre-commit");
+  const root = repoRoot ?? (getRepoRoot() || process.cwd());
+  const hooksDir = getHooksDir(root) ?? join(root, ".git", "hooks");
+  return join(hooksDir, "pre-commit");
+}
+
+// Adds Vernon's lines to an existing hook. If the hook ends with an `exit`,
+// they go before it so they still run.
+function addToHook(existing: string): string {
+  const block = [HOOK_MARKER, HOOK_COMMAND];
+  const lines = existing.replace(/\n+$/, "").split("\n");
+  const last = lines.length - 1;
+  if (/^\s*exit(\s|;|$)/.test(lines[last])) {
+    return [...lines.slice(0, last), ...block, lines[last]].join("\n") + "\n";
+  }
+  return [...lines, "", ...block].join("\n") + "\n";
 }
 
 export function installHook(repoRoot?: string): void {
@@ -15,17 +38,18 @@ export function installHook(repoRoot?: string): void {
   const hookContent = `#!/bin/sh\n${HOOK_MARKER}\n${HOOK_COMMAND}\n`;
 
   if (existsSync(hookPath)) {
-    const existing = Deno.readTextFileSync(hookPath);
+    const existing = readFileSync(hookPath, "utf8");
     if (existing.includes(HOOK_MARKER)) {
       console.log("Hook already installed.");
       return;
     }
-    Deno.writeTextFileSync(hookPath, existing + `\n${HOOK_MARKER}\n${HOOK_COMMAND}\n`);
+    writeFileSync(hookPath, addToHook(existing));
   } else {
-    Deno.writeTextFileSync(hookPath, hookContent);
+    mkdirSync(dirname(hookPath), { recursive: true });
+    writeFileSync(hookPath, hookContent);
   }
 
-  Deno.chmodSync(hookPath, 0o755);
+  chmodSync(hookPath, 0o755);
   console.log("Pre-commit hook installed.");
 }
 
@@ -36,22 +60,26 @@ export function uninstallHook(repoRoot?: string): void {
     return;
   }
 
-  const content = Deno.readTextFileSync(hookPath);
+  const content = readFileSync(hookPath, "utf8");
   if (!content.includes(HOOK_MARKER)) {
     console.log("No Vernon hook found.");
     return;
   }
 
   const lines = content.split("\n");
-  const filtered = lines.filter(
-    (line) => line !== HOOK_MARKER && line !== HOOK_COMMAND,
-  );
+  // Drop each marker and the Vernon command right after it; identical lines
+  // elsewhere in the hook belong to the user and stay.
+  const filtered = lines.filter((line, i) => {
+    if (line === HOOK_MARKER) return false;
+    const isOurs = line === HOOK_COMMAND || LEGACY_HOOK_COMMANDS.includes(line);
+    return !(isOurs && lines[i - 1] === HOOK_MARKER);
+  });
   const result = filtered.join("\n").trim();
 
   if (result === "#!/bin/sh" || result === "") {
-    Deno.removeSync(hookPath);
+    rmSync(hookPath);
   } else {
-    Deno.writeTextFileSync(hookPath, result + "\n");
+    writeFileSync(hookPath, result + "\n");
   }
 
   console.log("Pre-commit hook removed.");
