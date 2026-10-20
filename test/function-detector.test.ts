@@ -169,3 +169,36 @@ test("JS/TS - still detects real functions alongside control flow", () => {
   const result = detectDeletedFunctions(lines, "src/a.ts");
   assert.deepEqual(result.map((d) => d.name), ["handle", "render"]);
 });
+
+// Edited vs deleted
+test("does not report a function whose signature was edited but still exists", () => {
+  const removed = ["function getUser(id) {", "function dropUser(id) {"];
+  const added = ["function getUser(id, opts) {"];
+  const result = detectDeletedFunctions(removed, "src/a.ts", { addedLines: added });
+  assert.deepEqual(result.map((d) => d.name), ["dropUser"]);
+});
+
+test("a call to the function in added lines does not count as still defined", () => {
+  const removed = ["function helper() {"];
+  const added = ["  helper();"];
+  const result = detectDeletedFunctions(removed, "src/a.ts", { addedLines: added });
+  assert.deepEqual(result.map((d) => d.name), ["helper"]);
+});
+
+test("each function gets only its own removed lines", () => {
+  const removed = [
+    "function first() {",
+    "  return 1;",
+    "}",
+    "function second() {",
+    "  return 2;",
+    "}",
+    "const unrelated = 3;",
+  ];
+  // Two hunks: the second starts at "const unrelated".
+  const result = detectDeletedFunctions(removed, "src/a.ts", { hunkStarts: [0, 6] });
+  assert.deepEqual(result.map((d) => [d.name, d.removedLines]), [
+    ["first", ["function first() {", "  return 1;", "}"]],
+    ["second", ["function second() {", "  return 2;", "}"]],
+  ]);
+});

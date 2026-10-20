@@ -131,13 +131,13 @@ index abc..def 100644
 --- a/db/schema.ts
 +++ b/db/schema.ts
 @@ -1,2 +0,0 @@
---- comment
 -function dropTable() {
+--- comment
 `;
   const result = parseDiff(diff);
   assert.deepEqual(result.length, 1);
   assert.deepEqual(result[0].name, "dropTable");
-  assert.deepEqual(result[0].removedLines, ["-- comment", "function dropTable() {"]);
+  assert.deepEqual(result[0].removedLines, ["function dropTable() {", "-- comment"]);
 });
 
 test("parseDiff - unquotes paths git quoted", () => {
@@ -161,4 +161,29 @@ Binary files a/img/a b/logo.png and /dev/null differ
 `;
   const result = parseDiff(diff);
   assert.deepEqual(result[0]?.filePath, "img/a b/logo.png");
+});
+
+test("parseDiff - an edited signature is not a deleted function", () => {
+  const diff = `diff --git a/src/api.ts b/src/api.ts
+index abc..def 100644
+--- a/src/api.ts
++++ b/src/api.ts
+@@ -1 +1 @@
+-export function getUser(id: string) {
++export function getUser(id: string, opts: Options) {
+@@ -10,3 +10,0 @@
+-export function dropUser(id: string) {
+-  return db.drop(id);
+-}
+@@ -20 +17 @@
+-const limit = 10;
++const limit = 20;
+`;
+  const result = parseDiff(diff);
+  assert.deepEqual(result.map((d) => d.name), ["dropUser"]);
+  assert.deepEqual(result[0].removedLines, [
+    "export function dropUser(id: string) {",
+    "  return db.drop(id);",
+    "}",
+  ]);
 });

@@ -26,7 +26,10 @@ export function parseDiff(rawDiff: string): Deletion[] {
         removedLines: file.removedLines,
       });
     } else if (file.removedLines.length > 0) {
-      const funcDeletions = detectDeletedFunctions(file.removedLines, file.filePath);
+      const funcDeletions = detectDeletedFunctions(file.removedLines, file.filePath, {
+        addedLines: file.addedLines,
+        hunkStarts: file.hunkStarts,
+      });
       deletions.push(...funcDeletions);
     }
   }
