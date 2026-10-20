@@ -52,8 +52,9 @@ vernon scan --dry-run
 # View the cemetery
 vernon history
 
-# Manually mourn a specific file
+# Only mourn deletions in one file from the latest commit (or --ref)
 vernon mourn src/old-module.ts
+vernon mourn src/old-module.ts --ref HEAD~5..HEAD
 
 # Built-in hook management
 vernon hook install

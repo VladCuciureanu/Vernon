@@ -52,7 +52,9 @@ Commands:
   diff                     Scan staged changes (pre-commit mode)
   history                  Show the cemetery
   hook install|uninstall   Manage pre-commit hook
-  mourn <path>             Write obituary for a file
+  mourn <path> [--ref <ref>]
+                           Only mourn deletions in <path> from the latest
+                           commit (or --ref)
 
 Options:
   --dry-run                Print obituaries without writing to CEMETERY.md
@@ -94,13 +96,7 @@ export function run(args: readonly string[]): void {
   let rawDiff: string;
 
   try {
-    if (opts.command === "diff") {
-      rawDiff = getStagedDiff();
-    } else if (opts.command === "mourn" && opts.mournPath) {
-      rawDiff = getCommitDiff(opts.ref);
-    } else {
-      rawDiff = getCommitDiff(opts.ref);
-    }
+    rawDiff = opts.command === "diff" ? getStagedDiff() : getCommitDiff(opts.ref);
   } catch (err) {
     if (!(err instanceof GitError)) throw err;
     console.error(`vernon: ${err.message}`);
