@@ -9,8 +9,8 @@ import {
   getCauseOfDeath,
   getCommitCount,
   getCommitDiff,
-  getFileAuthor,
   getFileContentBeforeDeletion,
+  getFileOrigin,
 } from "../src/git.ts";
 
 function makeTempRepo(): string {
@@ -45,7 +45,7 @@ test("git - file paths with shell metacharacters are passed literally", () => {
       getFileContentBeforeDeletion(fileName, { kind: "staged" }),
       "export const x = 1;",
     );
-    assert.deepEqual(getFileAuthor(fileName), "Test Author");
+    assert.deepEqual(getFileOrigin(fileName)?.author, "Test Author");
     assert.deepEqual(getCommitCount(fileName), 1);
   });
 

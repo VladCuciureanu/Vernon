@@ -34,13 +34,14 @@ An earlier Deno build is published on JSR as `jsr:@vladcuciureanu/vernon`.
 vernon scan                         # deletions in the latest commit (HEAD~1..HEAD)
 vernon scan --ref HEAD~5..HEAD      # deletions in a range
 vernon diff                         # deletions in the staged changes
-vernon mourn src/old-module.ts      # only deletions in this exact path (accepts --ref)
+vernon mourn src/old-module.ts      # only deletions in this file (accepts --ref)
+vernon mourn src/legacy             # only deletions under this directory
 vernon history                      # print CEMETERY.md
 vernon hook install                 # add Vernon to the pre-commit hook
 vernon hook uninstall               # remove it again
 ```
 
-With no command, Vernon runs `scan`. Obituaries are printed to stdout and appended to `CEMETERY.md` at the repository root, under a heading for today's date. Vernon never commits that file; that's up to you.
+With no command, Vernon runs `scan`. `mourn` paths are relative to the repository root, and a directory matches every deletion beneath it; `mourn` shows every match, with no limit. Obituaries are printed to stdout (with a leading icon only when stdout is a terminal, so piped output is plain text) and appended to `CEMETERY.md` at the repository root, under a heading for today's date. Vernon never commits that file; that's up to you.
 
 | Option | Applies to | Description |
 |--------|------------|-------------|
@@ -49,8 +50,9 @@ With no command, Vernon runs `scan`. Obituaries are printed to stdout and append
 | `--limit <n>` | `scan`, `diff` | Maximum obituaries per run (default 20) |
 | `--verbose` | `scan`, `diff`, `mourn` | List each detected deletion, and say when none were found or the limit cut some off |
 | `-h`, `--help` | all | Show help |
+| `--version` | all | Print the version number |
 
-Outside a git repository, `scan`, `diff` and `mourn` exit with status 1. A git error (for example an unknown ref) is printed to stderr and also exits 1.
+Errors are printed to stderr as a single `vernon: ...` line. Outside a git repository, `scan`, `diff` and `mourn` exit with status 1, and so does a git error (for example an unknown ref). A usage error (an unknown command or option, an option the command doesn't take, an option missing its value, a missing or extra argument, or a `--limit` that isn't a positive integer) also prints a short usage line and exits with status 2.
 
 ### Pre-commit hook
 

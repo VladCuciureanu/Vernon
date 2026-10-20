@@ -15,9 +15,8 @@ const LEGACY_HOOK_COMMANDS = [
   "vernon diff",
 ];
 
-function getHookPath(repoRoot?: string): string {
-  const root = repoRoot ?? (getRepoRoot() || process.cwd());
-  const hooksDir = getHooksDir(root) ?? join(root, ".git", "hooks");
+function getHookPath(repoRoot = getRepoRoot()): string {
+  const hooksDir = getHooksDir(repoRoot) ?? join(repoRoot, ".git", "hooks");
   return join(hooksDir, "pre-commit");
 }
 

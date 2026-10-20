@@ -5,9 +5,8 @@ import type { Obituary } from "./types.ts";
 
 const HEADER = "# Code Cemetery\n\n> Where deleted code rests in peace.\n";
 
-function getCemeteryPath(repoRoot?: string): string {
-  const root = repoRoot ?? (getRepoRoot() || process.cwd());
-  return join(root, "CEMETERY.md");
+function getCemeteryPath(repoRoot = getRepoRoot()): string {
+  return join(repoRoot, "CEMETERY.md");
 }
 
 export function appendToCemetery(obituaries: Obituary[], repoRoot?: string): void {

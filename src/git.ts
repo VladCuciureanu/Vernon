@@ -62,18 +62,15 @@ export function getCommitDiff(ref?: string): string {
   return git([...DIFF_ARGS, "--end-of-options", ref]);
 }
 
-export function getFileCreationDate(filePath: string): string | null {
+// When and by whom the file was first added (following renames), from a
+// single `git log`; null when git has no record of it.
+export function getFileOrigin(filePath: string): { date: string; author: string } | null {
   const result =
-    tryGit(["log", "--follow", "--diff-filter=A", "--format=%aI", "--", filePath]) ?? "";
-  const lines = result.split("\n").filter(Boolean);
-  return lines.length > 0 ? lines[lines.length - 1] : null;
-}
-
-export function getFileAuthor(filePath: string): string | null {
-  const result =
-    tryGit(["log", "--follow", "--diff-filter=A", "--format=%an", "--", filePath]) ?? "";
-  const lines = result.split("\n").filter(Boolean);
-  return lines.length > 0 ? lines[lines.length - 1] : null;
+    tryGit(["log", "--follow", "--diff-filter=A", "--format=%aI%x00%an", "--", filePath]) ?? "";
+  const first = result.split("\n").filter(Boolean).at(-1);
+  if (!first) return null;
+  const [date, author] = first.split("\0");
+  return { date, author };
 }
 
 export function getLastEditor(filePath: string): string | null {
@@ -127,6 +124,7 @@ export function getHooksDir(cwd: string): string | null {
   return tryGit(["-C", cwd, "rev-parse", "--path-format=absolute", "--git-path", "hooks"]);
 }
 
+// The repository root, or the current directory outside a repository.
 export function getRepoRoot(): string {
-  return tryGit(["rev-parse", "--show-toplevel"]) ?? "";
+  return tryGit(["rev-parse", "--show-toplevel"]) || process.cwd();
 }
