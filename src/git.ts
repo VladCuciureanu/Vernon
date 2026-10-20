@@ -124,6 +124,7 @@ export function getHooksDir(cwd: string): string | null {
   return tryGit(["-C", cwd, "rev-parse", "--path-format=absolute", "--git-path", "hooks"]);
 }
 
+// The repository root, or the current directory outside a repository.
 export function getRepoRoot(): string {
-  return tryGit(["rev-parse", "--show-toplevel"]) ?? "";
+  return tryGit(["rev-parse", "--show-toplevel"]) || process.cwd();
 }
