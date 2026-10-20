@@ -67,9 +67,13 @@ export function uninstallHook(repoRoot?: string): void {
   }
 
   const lines = content.split("\n");
-  const filtered = lines.filter(
-    (line) => line !== HOOK_MARKER && line !== HOOK_COMMAND && !LEGACY_HOOK_COMMANDS.includes(line),
-  );
+  // Drop each marker and the Vernon command right after it; identical lines
+  // elsewhere in the hook belong to the user and stay.
+  const filtered = lines.filter((line, i) => {
+    if (line === HOOK_MARKER) return false;
+    const isOurs = line === HOOK_COMMAND || LEGACY_HOOK_COMMANDS.includes(line);
+    return !(isOurs && lines[i - 1] === HOOK_MARKER);
+  });
   const result = filtered.join("\n").trim();
 
   if (result === "#!/bin/sh" || result === "") {

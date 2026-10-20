@@ -132,6 +132,17 @@ test("uninstallHook - removes legacy deno and npx hook lines", () => {
   assert.deepEqual(content, "#!/bin/sh\nnpx lint-staged\n");
 });
 
+test("uninstallHook - keeps a user's own vernon diff line", () => {
+  const dir = makeTempRepo();
+  const hookPath = join(dir, ".git", "hooks", "pre-commit");
+  writeFileSync(hookPath, "#!/bin/sh\nvernon diff\n");
+  installHook(dir);
+
+  uninstallHook(dir);
+
+  assert.deepEqual(readFileSync(hookPath, "utf8"), "#!/bin/sh\nvernon diff\n");
+});
+
 test("installHook - honours core.hooksPath", () => {
   const dir = makeTempRepo();
   execFileSync("git", ["config", "core.hooksPath", ".githooks"], { cwd: dir, stdio: "ignore" });
