@@ -3,9 +3,15 @@ import { join } from "node:path";
 import { getRepoRoot } from "./git.ts";
 
 const HOOK_MARKER = "# vernon hook";
-const HOOK_COMMAND = "npx @vladcuciureanu/vernon diff";
-// Command written by the Deno version of Vernon; still removed on uninstall.
-const LEGACY_HOOK_COMMAND = "deno run --allow-run --allow-read --allow-write jsr:@vladcuciureanu/vernon diff";
+// Runs the globally installed `vernon` bin, so the hook works without the
+// package being published to a registry.
+const HOOK_COMMAND = "vernon diff";
+// Commands written by earlier versions of Vernon (Deno build, then npx); still
+// removed on uninstall.
+const LEGACY_HOOK_COMMANDS = [
+  "deno run --allow-run --allow-read --allow-write jsr:@vladcuciureanu/vernon diff",
+  "npx @vladcuciureanu/vernon diff",
+];
 
 function getHookPath(repoRoot?: string): string {
   const root = repoRoot ?? (getRepoRoot() || process.cwd());
@@ -46,7 +52,7 @@ export function uninstallHook(repoRoot?: string): void {
 
   const lines = content.split("\n");
   const filtered = lines.filter(
-    (line) => line !== HOOK_MARKER && line !== HOOK_COMMAND && line !== LEGACY_HOOK_COMMAND,
+    (line) => line !== HOOK_MARKER && line !== HOOK_COMMAND && !LEGACY_HOOK_COMMANDS.includes(line),
   );
   const result = filtered.join("\n").trim();
 

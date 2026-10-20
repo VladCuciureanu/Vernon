@@ -88,3 +88,28 @@ test("uninstallHook - handles hook without vernon marker gracefully", () => {
   const content = readFileSync(hookPath, "utf8");
   assert.ok(content.includes("npx lint-staged"));
 });
+
+test("installHook - runs the globally installed vernon bin, not npx", () => {
+  const dir = makeTempRepo();
+  installHook(dir);
+
+  const content = readFileSync(join(dir, ".git", "hooks", "pre-commit"), "utf8");
+  assert.ok(content.split("\n").includes("vernon diff"));
+  assert.ok(!content.includes("npx"));
+});
+
+test("uninstallHook - removes legacy deno and npx hook lines", () => {
+  const dir = makeTempRepo();
+  const hookPath = join(dir, ".git", "hooks", "pre-commit");
+  writeFileSync(
+    hookPath,
+    "#!/bin/sh\nnpx lint-staged\n" +
+      "# vernon hook\ndeno run --allow-run --allow-read --allow-write jsr:@vladcuciureanu/vernon diff\n" +
+      "# vernon hook\nnpx @vladcuciureanu/vernon diff\n",
+  );
+
+  uninstallHook(dir);
+
+  const content = readFileSync(hookPath, "utf8");
+  assert.deepEqual(content, "#!/bin/sh\nnpx lint-staged\n");
+});

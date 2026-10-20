@@ -11,14 +11,10 @@ Your git history is now a cemetery.
 Requires Node.js 24 or newer.
 
 ```bash
-npm install -g @vladcuciureanu/vernon
+npm install -g github:VladCuciureanu/Vernon
 ```
 
-Or run it without installing:
-
-```bash
-npx @vladcuciureanu/vernon scan
-```
+This installs straight from the GitHub repository (the `prepare` script compiles it during install) and puts `vernon` on your PATH.
 
 Deno users can still use the earlier Deno build published on JSR as `jsr:@vladcuciureanu/vernon`.
 
@@ -111,14 +107,14 @@ vernon hook install    # writes to .git/hooks/pre-commit
 vernon hook uninstall  # removes it
 ```
 
-This appends an `npx @vladcuciureanu/vernon diff` command to your pre-commit hook. If a hook already exists, it won't overwrite it — just appends.
+This adds a `vernon diff` command to your pre-commit hook, so `vernon` must be installed globally (see [Install](#install)). If a hook already exists, it won't overwrite it — just appends.
 
 ### Manual hook
 
 Add this to `.git/hooks/pre-commit` (or your hook runner of choice):
 
 ```bash
-npx @vladcuciureanu/vernon diff
+vernon diff
 ```
 
 ## Supported Languages

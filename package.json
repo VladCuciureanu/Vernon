@@ -20,7 +20,7 @@
     "start": "node bin/vernon.ts",
     "dev": "node bin/vernon.ts",
     "build": "tsc -p tsconfig.build.json",
-    "prepack": "npm run build",
+    "prepare": "npm run build",
     "test": "node --test \"test/**/*.test.ts\"",
     "typecheck": "tsc"
   },
