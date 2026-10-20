@@ -134,6 +134,56 @@ test("cli - --limit must be a positive integer", { skip }, () => {
   assert.match(ok.stdout, /doomed\(\)/);
 });
 
+test("cli - an option value that looks like an option gets one error line", { skip }, () => {
+  const { dir } = makeRepo();
+  for (const [name, value] of [
+    ["--limit", "-1"],
+    ["--ref", "-x"],
+  ]) {
+    const result = vernon(dir, "scan", name, value, "--dry-run");
+    assertUsageError(result, /which looks like an option/);
+    const errors = result.stderr.split("\n").filter((line) => line.startsWith("vernon: "));
+    assert.deepEqual(errors, [
+      `vernon: option '${name}' got '${value}', which looks like an option; write ${name}=${value}`,
+    ]);
+    assert.doesNotMatch(result.stderr, /-XYZ|\.\./);
+  }
+});
+
+test("cli - an option followed by a long option needs a value", { skip }, () => {
+  const { dir } = makeRepo();
+  const result = vernon(dir, "scan", "--limit", "--verbose");
+  assertUsageError(result, /^vernon: option '--limit' needs a value$/m);
+  assert.deepEqual(
+    result.stderr.split("\n").filter((line) => line.startsWith("vernon: ")).length,
+    1,
+  );
+  assert.doesNotMatch(result.stderr, /--limit=/);
+});
+
+test("cli - an option value starting with a dash works with =", { skip }, () => {
+  const { dir } = makeRepo();
+  assertUsageError(
+    vernon(dir, "scan", "--limit=-1", "--dry-run"),
+    /^vernon: --limit must be a positive integer, got '-1'$/m,
+  );
+  const ok = vernon(dir, "scan", "--ref=HEAD~2..HEAD", "--limit=1", "--dry-run");
+  assert.deepEqual(ok.status, 0, ok.stderr);
+  assert.match(ok.stdout, /doomed\(\)/);
+});
+
+test("cli - parseArgs errors print one error line", { skip }, () => {
+  const { dir } = makeRepo();
+  for (const args of [["--dryrun"], ["--limit"], ["--dry-run=1"], ["-x"]]) {
+    const result = vernon(dir, "scan", ...args);
+    assert.deepEqual(result.status, 2, result.stdout);
+    const stderr = result.stderr.trimEnd().split("\n");
+    assert.deepEqual(stderr.length, 2, result.stderr);
+    assert.match(stderr[0], /^vernon: \S.*[^.\s]$/);
+    assert.match(stderr[1], /^Usage: vernon/);
+  }
+});
+
 test("cli - options that don't apply to the command are usage errors", { skip }, () => {
   const { dir } = makeRepo();
   assertUsageError(vernon(dir, "diff", "--ref", "HEAD~2"), /--ref does not apply to diff/);
