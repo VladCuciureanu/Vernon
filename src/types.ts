@@ -32,3 +32,7 @@ export interface CliOptions {
   verbose: boolean;
   limit: number;
 }
+
+// Where the diff being mourned came from: the index (pre-commit) or a commit
+// range / ref passed with --ref (default: the latest commit).
+export type DiffSource = { kind: "staged" } | { kind: "commits"; ref?: string };

@@ -1,7 +1,7 @@
-import type { Deletion, Metadata } from "./types.ts";
+import type { Deletion, DiffSource, Metadata } from "./types.ts";
 import * as git from "./git.ts";
 
-export function enrichDeletion(deletion: Deletion): Metadata {
+export function enrichDeletion(deletion: Deletion, source: DiffSource): Metadata {
   const now = new Date().toISOString().split("T")[0];
 
   const birthDateRaw = git.getFileCreationDate(deletion.filePath);
@@ -10,11 +10,11 @@ export function enrichDeletion(deletion: Deletion): Metadata {
   const author = git.getFileAuthor(deletion.filePath) ?? "unknown";
   const lastEditor = git.getLastEditor(deletion.filePath) ?? "unknown";
   const commitCount = git.getCommitCount(deletion.filePath);
-  const causeOfDeath = git.getLatestCommitMessage();
+  const causeOfDeath = git.getCauseOfDeath(deletion.filePath, source);
 
   const linesOfCode =
     deletion.type === "file"
-      ? countFileLines(deletion)
+      ? countFileLines(deletion, source)
       : deletion.removedLines.length;
 
   return {
@@ -28,8 +28,8 @@ export function enrichDeletion(deletion: Deletion): Metadata {
   };
 }
 
-function countFileLines(deletion: Deletion): number {
-  const content = git.getFileContentBeforeDeletion(deletion.filePath);
+function countFileLines(deletion: Deletion, source: DiffSource): number {
+  const content = git.getFileContentBeforeDeletion(deletion.filePath, source);
   if (content) {
     return content.split("\n").length;
   }

@@ -9,6 +9,7 @@ import {
   getCommitCount,
   getCommitDiff,
   getFileAuthor,
+  getCauseOfDeath,
   getFileContentBeforeDeletion,
 } from "../src/git.ts";
 
@@ -40,7 +41,7 @@ test("git - file paths with shell metacharacters are passed literally", () => {
   execFileSync("git", ["commit", "-q", "-m", "add evil file"], { cwd: dir, stdio: "ignore" });
 
   inDir(dir, () => {
-    assert.deepEqual(getFileContentBeforeDeletion(fileName), "export const x = 1;");
+    assert.deepEqual(getFileContentBeforeDeletion(fileName, { kind: "staged" }), "export const x = 1;");
     assert.deepEqual(getFileAuthor(fileName), "Test Author");
     assert.deepEqual(getCommitCount(fileName), 1);
   });
@@ -89,5 +90,42 @@ test("git - default scan of a repo with a single commit is empty, not an error",
 
   inDir(dir, () => {
     assert.deepEqual(getCommitDiff(), "");
+  });
+});
+
+// Builds: c1 adds old.ts (3 lines) + keep.ts, c2 "remove old" deletes old.ts,
+// c3 "unrelated" edits keep.ts.
+function makeHistoryRepo(): string {
+  const dir = makeTempRepo();
+  const git = (...args: string[]) => execFileSync("git", args, { cwd: dir, stdio: "ignore" });
+  writeFileSync(join(dir, "old.ts"), ["a", "b", "c"].join(String.fromCharCode(10)));
+  writeFileSync(join(dir, "keep.ts"), "1");
+  git("add", ".");
+  git("commit", "-q", "-m", "add files");
+  git("rm", "-q", "old.ts");
+  git("commit", "-q", "-m", "remove old");
+  writeFileSync(join(dir, "keep.ts"), "2");
+  git("commit", "-q", "-am", "unrelated");
+  return dir;
+}
+
+test("git - cause of death comes from the scanned range, not the latest commit", () => {
+  const dir = makeHistoryRepo();
+  inDir(dir, () => {
+    assert.deepEqual(getCauseOfDeath("old.ts", { kind: "commits", ref: "HEAD~2..HEAD" }), "remove old");
+    assert.deepEqual(getCauseOfDeath("old.ts", { kind: "commits", ref: "HEAD~2..HEAD~1" }), "remove old");
+    assert.deepEqual(getCauseOfDeath("old.ts", { kind: "commits", ref: "HEAD~2" }), "remove old");
+    assert.deepEqual(getCauseOfDeath("old.ts", { kind: "staged" }), "not yet committed");
+  });
+});
+
+test("git - content before deletion is read from the start of the scanned range", () => {
+  const dir = makeHistoryRepo();
+  inDir(dir, () => {
+    const content = getFileContentBeforeDeletion("old.ts", { kind: "commits", ref: "HEAD~2..HEAD" });
+    assert.deepEqual(content?.split(String.fromCharCode(10)).length, 3);
+    assert.ok(getFileContentBeforeDeletion("old.ts", { kind: "commits", ref: "HEAD~2...HEAD" }));
+    assert.ok(getFileContentBeforeDeletion("old.ts", { kind: "commits", ref: "HEAD~2" }));
+    assert.deepEqual(getFileContentBeforeDeletion("old.ts", { kind: "commits" }), null);
   });
 });

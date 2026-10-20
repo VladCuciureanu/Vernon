@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import type { DiffSource } from "./types.ts";
 
 export class GitError extends Error {
   constructor(message: string) {
@@ -73,16 +74,39 @@ export function getCommitCount(filePath: string): number {
   return result ? result.split("\n").filter(Boolean).length : 0;
 }
 
-export function getLatestCommitMessage(): string {
-  return tryGit(["log", "-1", "--format=%s"]) || "unknown cause";
+// The revision holding the "before" side of the diff.
+function beforeRevision(source: DiffSource): string | null {
+  if (source.kind === "staged") return "HEAD";
+  const ref = source.ref;
+  if (ref === undefined) return "HEAD~1";
+  const symmetric = ref.indexOf("...");
+  if (symmetric !== -1) {
+    const left = ref.slice(0, symmetric) || "HEAD";
+    const right = ref.slice(symmetric + 3) || "HEAD";
+    return tryGit(["merge-base", "--end-of-options", left, right]);
+  }
+  const twoDot = ref.indexOf("..");
+  if (twoDot !== -1) return ref.slice(0, twoDot) || "HEAD";
+  // A single ref is diffed against the working tree.
+  return ref;
 }
 
-export function getFileContentBeforeDeletion(filePath: string): string | null {
-  let result = tryGit(["show", `HEAD:${filePath}`]);
-  if (!result) {
-    result = tryGit(["show", `HEAD~1:${filePath}`]);
-  }
-  return result || null;
+// The commit message of the last commit in the scanned range that touched
+// the file: the one that killed it.
+export function getCauseOfDeath(filePath: string, source: DiffSource): string {
+  if (source.kind === "staged") return "not yet committed";
+  const ref = source.ref ?? "HEAD~1..HEAD";
+  // A single ref is diffed against the working tree, so look at commits since.
+  const range = ref.includes("..") ? ref : `${ref}..HEAD`;
+  const message = tryGit(["log", "-1", "--format=%s", "--end-of-options", range, "--", filePath]);
+  if (message) return message;
+  return ref.includes("..") ? "unknown cause" : "uncommitted changes";
+}
+
+export function getFileContentBeforeDeletion(filePath: string, source: DiffSource): string | null {
+  const rev = beforeRevision(source);
+  if (!rev) return null;
+  return tryGit(["show", "--end-of-options", `${rev}:${filePath}`]) || null;
 }
 
 export function getRepoRoot(): string {
