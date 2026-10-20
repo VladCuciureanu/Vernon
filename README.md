@@ -82,7 +82,7 @@ Each obituary combines one line from each of five template pools (24,192 combina
 ## Development
 
 ```bash
-npm test                        # node:test, test/*.test.ts
+npm test                        # node:test, test/**/*.test.ts
 npm run typecheck               # tsc
 npm run build                   # compile to dist/
 npm run dev -- scan --dry-run   # run from source
