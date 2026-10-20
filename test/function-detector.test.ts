@@ -1,6 +1,6 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
-import { detectLanguage, detectDeletedFunctions } from "../src/function-detector.ts";
+import { test } from "node:test";
+import { detectDeletedFunctions, detectLanguage } from "../src/function-detector.ts";
 
 // detectLanguage
 const languageCases: [string, string][] = [
@@ -68,7 +68,10 @@ test("JS/TS - does not duplicate same-name detections", () => {
 
 // Python
 test("Python - detects def statements", () => {
-  const result = detectDeletedFunctions(["def calculate_tax(amount):", "    return amount * 0.21"], "lib/tax.py");
+  const result = detectDeletedFunctions(
+    ["def calculate_tax(amount):", "    return amount * 0.21"],
+    "lib/tax.py",
+  );
   assert.deepEqual(result.length, 1);
   assert.deepEqual(result[0].name, "calculate_tax");
 });
@@ -81,7 +84,10 @@ test("Python - detects class declarations", () => {
 
 // Go
 test("Go - detects plain functions", () => {
-  const result = detectDeletedFunctions(["func HandleRequest(w http.ResponseWriter, r *http.Request) {"], "handlers/api.go");
+  const result = detectDeletedFunctions(
+    ["func HandleRequest(w http.ResponseWriter, r *http.Request) {"],
+    "handlers/api.go",
+  );
   assert.deepEqual(result.length, 1);
   assert.deepEqual(result[0].name, "HandleRequest");
 });
@@ -94,13 +100,19 @@ test("Go - detects methods with receivers", () => {
 
 // Rust
 test("Rust - detects fn declarations", () => {
-  const result = detectDeletedFunctions(["fn process_data(input: &str) -> Result<()> {"], "src/lib.rs");
+  const result = detectDeletedFunctions(
+    ["fn process_data(input: &str) -> Result<()> {"],
+    "src/lib.rs",
+  );
   assert.deepEqual(result.length, 1);
   assert.deepEqual(result[0].name, "process_data");
 });
 
 test("Rust - detects pub async fn", () => {
-  const result = detectDeletedFunctions(["pub async fn fetch_user(id: u64) -> User {"], "src/api.rs");
+  const result = detectDeletedFunctions(
+    ["pub async fn fetch_user(id: u64) -> User {"],
+    "src/api.rs",
+  );
   assert.deepEqual(result.length, 1);
   assert.deepEqual(result[0].name, "fetch_user");
 });
@@ -167,7 +179,10 @@ test("JS/TS - still detects real functions alongside control flow", () => {
     "  render(props) {",
   ];
   const result = detectDeletedFunctions(lines, "src/a.ts");
-  assert.deepEqual(result.map((d) => d.name), ["handle", "render"]);
+  assert.deepEqual(
+    result.map((d) => d.name),
+    ["handle", "render"],
+  );
 });
 
 // Edited vs deleted
@@ -175,14 +190,20 @@ test("does not report a function whose signature was edited but still exists", (
   const removed = ["function getUser(id) {", "function dropUser(id) {"];
   const added = ["function getUser(id, opts) {"];
   const result = detectDeletedFunctions(removed, "src/a.ts", { addedLines: added });
-  assert.deepEqual(result.map((d) => d.name), ["dropUser"]);
+  assert.deepEqual(
+    result.map((d) => d.name),
+    ["dropUser"],
+  );
 });
 
 test("a call to the function in added lines does not count as still defined", () => {
   const removed = ["function helper() {"];
   const added = ["  helper();"];
   const result = detectDeletedFunctions(removed, "src/a.ts", { addedLines: added });
-  assert.deepEqual(result.map((d) => d.name), ["helper"]);
+  assert.deepEqual(
+    result.map((d) => d.name),
+    ["helper"],
+  );
 });
 
 test("each function gets only its own removed lines", () => {
@@ -197,8 +218,11 @@ test("each function gets only its own removed lines", () => {
   ];
   // Two hunks: the second starts at "const unrelated".
   const result = detectDeletedFunctions(removed, "src/a.ts", { hunkStarts: [0, 6] });
-  assert.deepEqual(result.map((d) => [d.name, d.removedLines]), [
-    ["first", ["function first() {", "  return 1;", "}"]],
-    ["second", ["function second() {", "  return 2;", "}"]],
-  ]);
+  assert.deepEqual(
+    result.map((d) => [d.name, d.removedLines]),
+    [
+      ["first", ["function first() {", "  return 1;", "}"]],
+      ["second", ["function second() {", "  return 2;", "}"]],
+    ],
+  );
 });

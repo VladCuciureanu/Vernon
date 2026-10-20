@@ -1,15 +1,15 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { test } from "node:test";
 import {
   GitError,
+  getCauseOfDeath,
   getCommitCount,
   getCommitDiff,
   getFileAuthor,
-  getCauseOfDeath,
   getFileContentBeforeDeletion,
 } from "../src/git.ts";
 
@@ -41,7 +41,10 @@ test("git - file paths with shell metacharacters are passed literally", () => {
   execFileSync("git", ["commit", "-q", "-m", "add evil file"], { cwd: dir, stdio: "ignore" });
 
   inDir(dir, () => {
-    assert.deepEqual(getFileContentBeforeDeletion(fileName, { kind: "staged" }), "export const x = 1;");
+    assert.deepEqual(
+      getFileContentBeforeDeletion(fileName, { kind: "staged" }),
+      "export const x = 1;",
+    );
     assert.deepEqual(getFileAuthor(fileName), "Test Author");
     assert.deepEqual(getCommitCount(fileName), 1);
   });
@@ -74,11 +77,14 @@ test("git - an unknown --ref throws git's error instead of returning nothing", (
   execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: dir, stdio: "ignore" });
 
   inDir(dir, () => {
-    assert.throws(() => getCommitDiff("no-such-branch"), (err: unknown) => {
-      assert.ok(err instanceof GitError);
-      assert.match(err.message, /no-such-branch/);
-      return true;
-    });
+    assert.throws(
+      () => getCommitDiff("no-such-branch"),
+      (err: unknown) => {
+        assert.ok(err instanceof GitError);
+        assert.match(err.message, /no-such-branch/);
+        return true;
+      },
+    );
   });
 });
 
@@ -112,8 +118,14 @@ function makeHistoryRepo(): string {
 test("git - cause of death comes from the scanned range, not the latest commit", () => {
   const dir = makeHistoryRepo();
   inDir(dir, () => {
-    assert.deepEqual(getCauseOfDeath("old.ts", { kind: "commits", ref: "HEAD~2..HEAD" }), "remove old");
-    assert.deepEqual(getCauseOfDeath("old.ts", { kind: "commits", ref: "HEAD~2..HEAD~1" }), "remove old");
+    assert.deepEqual(
+      getCauseOfDeath("old.ts", { kind: "commits", ref: "HEAD~2..HEAD" }),
+      "remove old",
+    );
+    assert.deepEqual(
+      getCauseOfDeath("old.ts", { kind: "commits", ref: "HEAD~2..HEAD~1" }),
+      "remove old",
+    );
     assert.deepEqual(getCauseOfDeath("old.ts", { kind: "commits", ref: "HEAD~2" }), "remove old");
     assert.deepEqual(getCauseOfDeath("old.ts", { kind: "staged" }), "not yet committed");
   });
@@ -122,7 +134,10 @@ test("git - cause of death comes from the scanned range, not the latest commit",
 test("git - content before deletion is read from the start of the scanned range", () => {
   const dir = makeHistoryRepo();
   inDir(dir, () => {
-    const content = getFileContentBeforeDeletion("old.ts", { kind: "commits", ref: "HEAD~2..HEAD" });
+    const content = getFileContentBeforeDeletion("old.ts", {
+      kind: "commits",
+      ref: "HEAD~2..HEAD",
+    });
     assert.deepEqual(content?.split(String.fromCharCode(10)).length, 3);
     assert.ok(getFileContentBeforeDeletion("old.ts", { kind: "commits", ref: "HEAD~2...HEAD" }));
     assert.ok(getFileContentBeforeDeletion("old.ts", { kind: "commits", ref: "HEAD~2" }));

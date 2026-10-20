@@ -1,9 +1,16 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { execFileSync, spawnSync } from "node:child_process";
+import {
+  chmodSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
-import { execFileSync, spawnSync } from "node:child_process";
+import { test } from "node:test";
 import { installHook, uninstallHook } from "../src/hook.ts";
 
 function makeTempRepo(): string {
@@ -97,7 +104,9 @@ test("installHook - runs the globally installed vernon bin, not npx", () => {
   installHook(dir);
 
   const content = readFileSync(join(dir, ".git", "hooks", "pre-commit"), "utf8");
-  assert.ok(content.split("\n").includes("command -v vernon >/dev/null 2>&1 && vernon diff || true"));
+  assert.ok(
+    content.split("\n").includes("command -v vernon >/dev/null 2>&1 && vernon diff || true"),
+  );
   assert.ok(!content.includes("npx"));
 });
 
@@ -164,7 +173,10 @@ test("installHook - inserts before a trailing exit in an existing hook", () => {
   installHook(dir);
 
   const content = readFileSync(hookPath, "utf8");
-  assert.deepEqual(content, "#!/bin/sh\nnpx lint-staged\n# vernon hook\ncommand -v vernon >/dev/null 2>&1 && vernon diff || true\nexit 0\n");
+  assert.deepEqual(
+    content,
+    "#!/bin/sh\nnpx lint-staged\n# vernon hook\ncommand -v vernon >/dev/null 2>&1 && vernon diff || true\nexit 0\n",
+  );
 
   uninstallHook(dir);
   assert.deepEqual(readFileSync(hookPath, "utf8"), "#!/bin/sh\nnpx lint-staged\nexit 0\n");

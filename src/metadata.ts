@@ -1,5 +1,5 @@
-import type { Deletion, DiffSource, Metadata } from "./types.ts";
 import * as git from "./git.ts";
+import type { Deletion, DiffSource, Metadata } from "./types.ts";
 
 // The per-file git lookups metadata needs; injectable for tests.
 export interface FileLookups {
@@ -54,7 +54,8 @@ export function createEnricher(
 
   return (deletion) => {
     const now = new Date().toISOString().split("T")[0];
-    const linesOfCode = deletion.type === "file" ? countFileLines(deletion) : deletion.removedLines.length;
+    const linesOfCode =
+      deletion.type === "file" ? countFileLines(deletion) : deletion.removedLines.length;
     return { ...history(deletion.filePath), deathDate: now, linesOfCode };
   };
 }

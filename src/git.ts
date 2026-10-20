@@ -12,7 +12,10 @@ export class GitError extends Error {
 // are passed literally and cannot inject shell commands. Throws GitError with
 // git's own error output when git cannot be run or exits non-zero.
 function git(args: string[]): string {
-  const { stdout, stderr, error, status } = spawnSync("git", args, { encoding: "utf8", maxBuffer: Infinity });
+  const { stdout, stderr, error, status } = spawnSync("git", args, {
+    encoding: "utf8",
+    maxBuffer: Infinity,
+  });
   if (error) throw new GitError(`could not run git: ${error.message}`);
   if (status !== 0) {
     throw new GitError(stderr.trim() || `git ${args[0]} exited with status ${status}`);
@@ -37,7 +40,14 @@ export function isInsideGitRepo(): boolean {
 
 // Pin the output format the diff parser relies on, regardless of user config
 // (diff.noprefix, diff.mnemonicPrefix, color.diff, diff.external).
-const DIFF_ARGS = ["diff", "-U0", "--no-color", "--no-ext-diff", "--src-prefix=a/", "--dst-prefix=b/"];
+const DIFF_ARGS = [
+  "diff",
+  "-U0",
+  "--no-color",
+  "--no-ext-diff",
+  "--src-prefix=a/",
+  "--dst-prefix=b/",
+];
 
 export function getStagedDiff(): string {
   return git([...DIFF_ARGS, "--cached"]);
@@ -53,13 +63,15 @@ export function getCommitDiff(ref?: string): string {
 }
 
 export function getFileCreationDate(filePath: string): string | null {
-  const result = tryGit(["log", "--follow", "--diff-filter=A", "--format=%aI", "--", filePath]) ?? "";
+  const result =
+    tryGit(["log", "--follow", "--diff-filter=A", "--format=%aI", "--", filePath]) ?? "";
   const lines = result.split("\n").filter(Boolean);
   return lines.length > 0 ? lines[lines.length - 1] : null;
 }
 
 export function getFileAuthor(filePath: string): string | null {
-  const result = tryGit(["log", "--follow", "--diff-filter=A", "--format=%an", "--", filePath]) ?? "";
+  const result =
+    tryGit(["log", "--follow", "--diff-filter=A", "--format=%an", "--", filePath]) ?? "";
   const lines = result.split("\n").filter(Boolean);
   return lines.length > 0 ? lines[lines.length - 1] : null;
 }

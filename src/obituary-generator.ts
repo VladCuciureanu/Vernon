@@ -66,10 +66,7 @@ export function generateObituary(
   metadata: Metadata,
   rng: () => number = Math.random,
 ): Obituary {
-  const displayName =
-    deletion.type === "function"
-      ? `${deletion.name}()`
-      : deletion.name;
+  const displayName = deletion.type === "function" ? `${deletion.name}()` : deletion.name;
 
   const vars: Record<string, string> = {
     name: displayName,

@@ -1,5 +1,5 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
+import { test } from "node:test";
 import { generateObituary } from "../src/obituary-generator.ts";
 import type { Deletion, Metadata } from "../src/types.ts";
 
@@ -69,7 +69,9 @@ test("does not contain uninterpolated placeholders", () => {
   for (const rng of sweep(50)) {
     const result = generateObituary(mockDeletion, mockMetadata, rng);
     assert.deepEqual(
-      result.text.match(/\{(name|birthDate|deathDate|author|lastEditor|commitCount|linesOfCode|commitMessage)\}/),
+      result.text.match(
+        /\{(name|birthDate|deathDate|author|lastEditor|commitCount|linesOfCode|commitMessage)\}/,
+      ),
       null,
     );
   }
@@ -87,7 +89,9 @@ test("picks fragments using the injected rng", () => {
 });
 
 test("produces varied output across rng values", () => {
-  const uniqueTexts = new Set(sweep(30).map((rng) => generateObituary(mockDeletion, mockMetadata, rng).text));
+  const uniqueTexts = new Set(
+    sweep(30).map((rng) => generateObituary(mockDeletion, mockMetadata, rng).text),
+  );
   assert.ok(uniqueTexts.size > 5);
 });
 

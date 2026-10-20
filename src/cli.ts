@@ -1,10 +1,10 @@
-import type { CliOptions, Deletion, DiffSource } from "./types.ts";
-import { isInsideGitRepo, getStagedDiff, getCommitDiff, GitError } from "./git.ts";
+import { appendToCemetery, readCemetery } from "./cemetery.ts";
 import { parseDiff } from "./diff-parser.ts";
+import { GitError, getCommitDiff, getStagedDiff, isInsideGitRepo } from "./git.ts";
+import { installHook, uninstallHook } from "./hook.ts";
 import { createEnricher } from "./metadata.ts";
 import { generateObituary } from "./obituary-generator.ts";
-import { appendToCemetery, readCemetery } from "./cemetery.ts";
-import { installHook, uninstallHook } from "./hook.ts";
+import type { CliOptions, Deletion, DiffSource } from "./types.ts";
 
 function parseArgs(args: readonly string[]): CliOptions {
   const opts: CliOptions = {
@@ -17,7 +17,13 @@ function parseArgs(args: readonly string[]): CliOptions {
   let i = 0;
   const command = args[0];
 
-  if (command === "scan" || command === "diff" || command === "history" || command === "hook" || command === "mourn") {
+  if (
+    command === "scan" ||
+    command === "diff" ||
+    command === "history" ||
+    command === "hook" ||
+    command === "mourn"
+  ) {
     opts.command = command;
     i = 1;
   }
@@ -135,7 +141,8 @@ export function run(args: readonly string[]): void {
 }
 
 function processObituaries(deletions: Deletion[], opts: CliOptions): void {
-  const source: DiffSource = opts.command === "diff" ? { kind: "staged" } : { kind: "commits", ref: opts.ref };
+  const source: DiffSource =
+    opts.command === "diff" ? { kind: "staged" } : { kind: "commits", ref: opts.ref };
   const enrich = createEnricher(source);
   const obituaries = deletions.map((d) => {
     if (opts.verbose) {
@@ -156,6 +163,8 @@ function processObituaries(deletions: Deletion[], opts: CliOptions): void {
 
   if (!opts.dryRun) {
     appendToCemetery(obituaries);
-    console.log(`Written ${obituaries.length} obituar${obituaries.length === 1 ? "y" : "ies"} to CEMETERY.md`);
+    console.log(
+      `Written ${obituaries.length} obituar${obituaries.length === 1 ? "y" : "ies"} to CEMETERY.md`,
+    );
   }
 }

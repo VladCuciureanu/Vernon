@@ -1,5 +1,5 @@
+import { detectDeletedFunctions, detectLanguage } from "./function-detector.ts";
 import type { Deletion } from "./types.ts";
-import { detectLanguage, detectDeletedFunctions } from "./function-detector.ts";
 
 interface DiffFile {
   filePath: string;
@@ -55,7 +55,8 @@ function splitIntoFiles(rawDiff: string): DiffFile[] {
       if (line.startsWith("deleted file mode ")) isDeleted = true;
       else if (line.startsWith("--- ")) oldPath = parseHeaderPath(line.slice(4), "a/");
       else if (line.startsWith("+++ ")) newPath = parseHeaderPath(line.slice(4), "b/");
-      else if (line.startsWith("rename from ")) renameFrom = unquote(line.slice("rename from ".length));
+      else if (line.startsWith("rename from "))
+        renameFrom = unquote(line.slice("rename from ".length));
     }
 
     const filePath = oldPath ?? renameFrom ?? newPath ?? parseGitHeader(lines[0]);
@@ -103,7 +104,17 @@ function parseGitHeader(header: string | undefined): string | null {
 function unquote(value: string): string {
   if (!(value.length >= 2 && value.startsWith('"') && value.endsWith('"'))) return value;
   const bytes: number[] = [];
-  const escapes: Record<string, number> = { n: 10, t: 9, r: 13, a: 7, b: 8, f: 12, v: 11, '"': 34, "\\": 92 };
+  const escapes: Record<string, number> = {
+    n: 10,
+    t: 9,
+    r: 13,
+    a: 7,
+    b: 8,
+    f: 12,
+    v: 11,
+    '"': 34,
+    "\\": 92,
+  };
   const inner = value.slice(1, -1);
   for (let i = 0; i < inner.length; i++) {
     const ch = inner[i];
