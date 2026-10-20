@@ -26,8 +26,6 @@ npm install     # the prepare script compiles to dist/
 npm link        # puts `vernon` on your PATH
 ```
 
-The earlier Deno version on JSR (`jsr:@vladcuciureanu/vernon`) is deprecated.
-
 ## Usage
 
 ```bash
