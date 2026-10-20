@@ -49,12 +49,16 @@ test("includes the file name without () for file deletions", () => {
   assert.ok(!result.text.includes("utils.ts()"));
 });
 
+// Returns rng functions that pick index i/n of every pool, covering each pool
+// entry deterministically.
+function sweep(steps: number): (() => number)[] {
+  return Array.from({ length: steps }, (_, i) => () => i / steps);
+}
+
 test("interpolates metadata values into the text", () => {
-  const texts: string[] = [];
-  for (let i = 0; i < 50; i++) {
-    texts.push(generateObituary(mockDeletion, mockMetadata).text);
-  }
-  const combined = texts.join(" ");
+  const combined = sweep(50)
+    .map((rng) => generateObituary(mockDeletion, mockMetadata, rng).text)
+    .join(" ");
 
   assert.ok(combined.includes("2022-03-15"));
   assert.ok(combined.includes("2026-03-24"));
@@ -62,8 +66,8 @@ test("interpolates metadata values into the text", () => {
 });
 
 test("does not contain uninterpolated placeholders", () => {
-  for (let i = 0; i < 20; i++) {
-    const result = generateObituary(mockDeletion, mockMetadata);
+  for (const rng of sweep(50)) {
+    const result = generateObituary(mockDeletion, mockMetadata, rng);
     assert.deepEqual(
       result.text.match(/\{(name|birthDate|deathDate|author|lastEditor|commitCount|linesOfCode|commitMessage)\}/),
       null,
@@ -71,11 +75,19 @@ test("does not contain uninterpolated placeholders", () => {
   }
 });
 
-test("produces varied output (randomness check)", () => {
-  const uniqueTexts = new Set<string>();
-  for (let i = 0; i < 30; i++) {
-    uniqueTexts.add(generateObituary(mockDeletion, mockMetadata).text);
-  }
+test("picks fragments using the injected rng", () => {
+  const first = generateObituary(mockDeletion, mockMetadata, () => 0).text;
+  const last = generateObituary(mockDeletion, mockMetadata, () => 0.999999).text;
+
+  assert.ok(first.startsWith("Here lies getUserById(),"));
+  assert.ok(first.endsWith("It never threw an uncaught exception."));
+  assert.ok(last.startsWith("A moment of silence for getUserById()."));
+  assert.ok(last.endsWith("404: Function not found. Forever."));
+  assert.deepEqual(generateObituary(mockDeletion, mockMetadata, () => 0).text, first);
+});
+
+test("produces varied output across rng values", () => {
+  const uniqueTexts = new Set(sweep(30).map((rng) => generateObituary(mockDeletion, mockMetadata, rng).text));
   assert.ok(uniqueTexts.size > 5);
 });
 

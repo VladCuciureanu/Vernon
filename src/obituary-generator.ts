@@ -52,15 +52,20 @@ const FLAVOUR = {
   ],
 };
 
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
+function pick<T>(arr: T[], rng: () => number): T {
+  return arr[Math.floor(rng() * arr.length)];
 }
 
 function interpolate(template: string, vars: Record<string, string>): string {
   return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? key);
 }
 
-export function generateObituary(deletion: Deletion, metadata: Metadata): Obituary {
+// `rng` returns a number in [0, 1) like Math.random; injectable for tests.
+export function generateObituary(
+  deletion: Deletion,
+  metadata: Metadata,
+  rng: () => number = Math.random,
+): Obituary {
   const displayName =
     deletion.type === "function"
       ? `${deletion.name}()`
@@ -78,11 +83,11 @@ export function generateObituary(deletion: Deletion, metadata: Metadata): Obitua
   };
 
   const parts = [
-    interpolate(pick(FLAVOUR.openings), vars),
-    interpolate(pick(FLAVOUR.lifeSummary), vars),
-    interpolate(pick(FLAVOUR.achievements), vars),
-    interpolate(pick(FLAVOUR.causeOfDeath), vars),
-    interpolate(pick(FLAVOUR.epitaphs), vars),
+    interpolate(pick(FLAVOUR.openings, rng), vars),
+    interpolate(pick(FLAVOUR.lifeSummary, rng), vars),
+    interpolate(pick(FLAVOUR.achievements, rng), vars),
+    interpolate(pick(FLAVOUR.causeOfDeath, rng), vars),
+    interpolate(pick(FLAVOUR.epitaphs, rng), vars),
   ];
 
   return {
