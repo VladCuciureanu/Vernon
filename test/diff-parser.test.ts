@@ -95,3 +95,70 @@ index abc..def 100644
   const allRemoved = result.flatMap((d) => d.removedLines);
   assert.ok(allRemoved.every((l) => !l.startsWith("-- ")));
 });
+
+test("parseDiff - handles paths containing \" b/\"", () => {
+  const diff = `diff --git a/docs/a b/c.ts b/docs/a b/c.ts
+deleted file mode 100644
+index abc..000
+--- a/docs/a b/c.ts\t
++++ /dev/null
+@@ -1 +0,0 @@
+-export const x = 1;
+`;
+  const result = parseDiff(diff);
+  assert.deepEqual(result.length, 1);
+  assert.deepEqual(result[0].type, "file");
+  assert.deepEqual(result[0].filePath, "docs/a b/c.ts");
+  assert.deepEqual(result[0].name, "c.ts");
+});
+
+test("parseDiff - 'deleted file mode' in file content does not mark the file deleted", () => {
+  const diff = `diff --git a/src/notes.ts b/src/notes.ts
+index abc..def 100644
+--- a/src/notes.ts
++++ b/src/notes.ts
+@@ -1 +1 @@
+-// deleted file mode is a git header
++// renamed comment
+`;
+  const result = parseDiff(diff);
+  assert.ok(result.every((d) => d.type !== "file"));
+});
+
+test("parseDiff - removed lines that start with -- are kept", () => {
+  const diff = `diff --git a/db/schema.ts b/db/schema.ts
+index abc..def 100644
+--- a/db/schema.ts
++++ b/db/schema.ts
+@@ -1,2 +0,0 @@
+--- comment
+-function dropTable() {
+`;
+  const result = parseDiff(diff);
+  assert.deepEqual(result.length, 1);
+  assert.deepEqual(result[0].name, "dropTable");
+  assert.deepEqual(result[0].removedLines, ["-- comment", "function dropTable() {"]);
+});
+
+test("parseDiff - unquotes paths git quoted", () => {
+  const diff = `diff --git "a/src/caf\\303\\251.ts" "b/src/caf\\303\\251.ts"
+deleted file mode 100644
+index abc..000
+--- "a/src/caf\\303\\251.ts"
++++ /dev/null
+@@ -1 +0,0 @@
+-export const x = 1;
+`;
+  const result = parseDiff(diff);
+  assert.deepEqual(result[0]?.filePath, "src/café.ts");
+});
+
+test("parseDiff - deleted binary file uses the diff --git header", () => {
+  const diff = `diff --git a/img/a b/logo.png b/img/a b/logo.png
+deleted file mode 100644
+index abc..000
+Binary files a/img/a b/logo.png and /dev/null differ
+`;
+  const result = parseDiff(diff);
+  assert.deepEqual(result[0]?.filePath, "img/a b/logo.png");
+});

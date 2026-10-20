@@ -12,13 +12,17 @@ export function isInsideGitRepo(): boolean {
   return git(["rev-parse", "--is-inside-work-tree"]) === "true";
 }
 
+// Pin the output format the diff parser relies on, regardless of user config
+// (diff.noprefix, diff.mnemonicPrefix, color.diff, diff.external).
+const DIFF_ARGS = ["diff", "-U0", "--no-color", "--no-ext-diff", "--src-prefix=a/", "--dst-prefix=b/"];
+
 export function getStagedDiff(): string {
-  return git(["diff", "--cached", "-U0"]);
+  return git([...DIFF_ARGS, "--cached"]);
 }
 
 export function getCommitDiff(ref?: string): string {
   const range = ref ?? "HEAD~1..HEAD";
-  return git(["diff", "-U0", "--end-of-options", range]);
+  return git([...DIFF_ARGS, "--end-of-options", range]);
 }
 
 export function getFileCreationDate(filePath: string): string | null {
