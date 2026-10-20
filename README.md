@@ -8,7 +8,7 @@ Your git history is now a cemetery.
 
 ## Install
 
-Requires Node.js 24 or newer. Vernon isn't on the npm registry yet, so install it from a clone:
+Requires Node.js 26 or newer. Vernon isn't on the npm registry yet, so install it from a clone:
 
 ```bash
 git clone https://github.com/VladCuciureanu/Vernon.git
