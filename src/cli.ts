@@ -1,7 +1,7 @@
 import type { CliOptions, Deletion, DiffSource } from "./types.ts";
 import { isInsideGitRepo, getStagedDiff, getCommitDiff, GitError } from "./git.ts";
 import { parseDiff } from "./diff-parser.ts";
-import { enrichDeletion } from "./metadata.ts";
+import { createEnricher } from "./metadata.ts";
 import { generateObituary } from "./obituary-generator.ts";
 import { appendToCemetery, readCemetery } from "./cemetery.ts";
 import { installHook, uninstallHook } from "./hook.ts";
@@ -136,11 +136,12 @@ export function run(args: readonly string[]): void {
 
 function processObituaries(deletions: Deletion[], opts: CliOptions): void {
   const source: DiffSource = opts.command === "diff" ? { kind: "staged" } : { kind: "commits", ref: opts.ref };
+  const enrich = createEnricher(source);
   const obituaries = deletions.map((d) => {
     if (opts.verbose) {
       console.log(`  [${d.type}] ${d.name} (${d.filePath})`);
     }
-    const metadata = enrichDeletion(d, source);
+    const metadata = enrich(d);
     return generateObituary(d, metadata);
   });
 
