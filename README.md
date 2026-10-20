@@ -40,7 +40,7 @@ vernon hook install                 # add Vernon to the pre-commit hook
 vernon hook uninstall               # remove it again
 ```
 
-With no command, Vernon runs `scan`. Obituaries are printed to stdout and appended to `CEMETERY.md` at the repository root, under a heading for today's date. Vernon never commits that file; that's up to you.
+With no command, Vernon runs `scan`. Obituaries are printed to stdout (with a leading icon only when stdout is a terminal, so piped output is plain text) and appended to `CEMETERY.md` at the repository root, under a heading for today's date. Vernon never commits that file; that's up to you.
 
 | Option | Applies to | Description |
 |--------|------------|-------------|

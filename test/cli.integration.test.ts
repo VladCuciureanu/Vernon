@@ -166,3 +166,14 @@ test("cli - --help works with any command", { skip }, () => {
   assert.deepEqual(result.status, 0, result.stderr);
   assert.match(result.stdout, /Commands:/);
 });
+
+test("cli - obituaries piped to another program have no emoji", { skip }, () => {
+  const { dir, git } = makeRepo();
+  git("rm", "-q", "old.py");
+
+  const result = vernon(dir, "diff", "--dry-run");
+
+  assert.deepEqual(result.status, 0, result.stderr);
+  assert.match(result.stdout, /old\.py/);
+  assert.doesNotMatch(result.stdout, /\p{Extended_Pictographic}/u);
+});

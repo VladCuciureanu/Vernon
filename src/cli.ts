@@ -206,9 +206,11 @@ function processObituaries(deletions: Deletion[], opts: CliOptions): void {
   });
 
   console.log("");
+  // Icons only for people; piped output stays plain text.
+  const icons = process.stdout.isTTY === true;
   for (const obit of obituaries) {
     const icon = obit.deletion.type === "file" ? "\u{1F4C1}" : "\u26B0\uFE0F";
-    console.log(`${icon}  ${obit.text}`);
+    console.log(icons ? `${icon}  ${obit.text}` : obit.text);
     console.log("");
   }
 
