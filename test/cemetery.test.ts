@@ -1,8 +1,8 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { test } from "node:test";
 import { appendToCemetery, readCemetery } from "../src/cemetery.ts";
 import type { Obituary } from "../src/types.ts";
 
@@ -92,7 +92,10 @@ test("appendToCemetery - includes a date heading", () => {
 test("appendToCemetery - appends to existing CEMETERY.md", () => {
   const dir = makeTempDir();
   const cemeteryPath = join(dir, "CEMETERY.md");
-  writeFileSync(cemeteryPath, "# Code Cemetery\n\n## 2025-01-01\n\n### old stuff\n\n> old obit\n\n");
+  writeFileSync(
+    cemeteryPath,
+    "# Code Cemetery\n\n## 2025-01-01\n\n### old stuff\n\n> old obit\n\n",
+  );
 
   appendToCemetery([makeObituary()], dir);
 

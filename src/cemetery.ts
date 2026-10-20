@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Obituary } from "./types.ts";
 import { getRepoRoot } from "./git.ts";
+import type { Obituary } from "./types.ts";
 
 const HEADER = "# Code Cemetery\n\n> Where deleted code rests in peace.\n";
 

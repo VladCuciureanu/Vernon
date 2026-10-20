@@ -7,9 +7,28 @@ interface LanguagePattern {
 
 // Keywords that look like `name(...) {` but are control flow, not definitions.
 const CONTROL_FLOW_KEYWORDS = new Set([
-  "if", "else", "for", "foreach", "while", "do", "switch", "case", "catch",
-  "try", "finally", "with", "return", "throw", "typeof", "await", "yield",
-  "elif", "elsif", "unless", "until", "synchronized",
+  "if",
+  "else",
+  "for",
+  "foreach",
+  "while",
+  "do",
+  "switch",
+  "case",
+  "catch",
+  "try",
+  "finally",
+  "with",
+  "return",
+  "throw",
+  "typeof",
+  "await",
+  "yield",
+  "elif",
+  "elsif",
+  "unless",
+  "until",
+  "synchronized",
 ]);
 
 const LANGUAGES: Record<string, LanguagePattern> = {
@@ -25,23 +44,15 @@ const LANGUAGES: Record<string, LanguagePattern> = {
   },
   python: {
     extensions: [".py"],
-    patterns: [
-      /def\s+(\w+)\s*\(/,
-      /class\s+(\w+)/,
-    ],
+    patterns: [/def\s+(\w+)\s*\(/, /class\s+(\w+)/],
   },
   go: {
     extensions: [".go"],
-    patterns: [
-      /func\s+(?:\([^)]+\)\s+)?(\w+)\s*\(/,
-    ],
+    patterns: [/func\s+(?:\([^)]+\)\s+)?(\w+)\s*\(/],
   },
   rust: {
     extensions: [".rs"],
-    patterns: [
-      /(?:pub\s+)?(?:async\s+)?fn\s+(\w+)/,
-      /impl\s+(\w+)/,
-    ],
+    patterns: [/(?:pub\s+)?(?:async\s+)?fn\s+(\w+)/, /impl\s+(\w+)/],
   },
   java: {
     extensions: [".java", ".kt"],
@@ -52,17 +63,11 @@ const LANGUAGES: Record<string, LanguagePattern> = {
   },
   ruby: {
     extensions: [".rb"],
-    patterns: [
-      /def\s+(\w+)/,
-      /class\s+(\w+)/,
-    ],
+    patterns: [/def\s+(\w+)/, /class\s+(\w+)/],
   },
   php: {
     extensions: [".php"],
-    patterns: [
-      /function\s+(\w+)\s*\(/,
-      /class\s+(\w+)/,
-    ],
+    patterns: [/function\s+(\w+)\s*\(/, /class\s+(\w+)/],
   },
 };
 
@@ -113,9 +118,9 @@ export function detectDeletedFunctions(
     const name = matchName(line, langDef.patterns);
     if (name) signatures.push({ index, name });
   });
-  const boundaries = [...new Set([...hunkStarts, ...signatures.map((s) => s.index), removedLines.length])].sort(
-    (a, b) => a - b,
-  );
+  const boundaries = [
+    ...new Set([...hunkStarts, ...signatures.map((s) => s.index), removedLines.length]),
+  ].sort((a, b) => a - b);
 
   const deletions: Deletion[] = [];
   const seen = new Set<string>();

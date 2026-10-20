@@ -1,5 +1,5 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
+import { test } from "node:test";
 import { createEnricher, type FileLookups } from "../src/metadata.ts";
 import type { Deletion } from "../src/types.ts";
 
@@ -17,7 +17,13 @@ function countingLookups(): { lookups: FileLookups; calls: string[] } {
 }
 
 function fn(name: string, filePath: string, lines = 2): Deletion {
-  return { type: "function", name, filePath, language: "javascript", removedLines: Array(lines).fill("x") };
+  return {
+    type: "function",
+    name,
+    filePath,
+    language: "javascript",
+    removedLines: Array(lines).fill("x"),
+  };
 }
 
 test("createEnricher - runs each file's git lookups once", () => {

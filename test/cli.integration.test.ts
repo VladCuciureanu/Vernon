@@ -1,9 +1,9 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { test } from "node:test";
 import { fileURLToPath } from "node:url";
 
 const BIN = fileURLToPath(new URL("../bin/vernon.ts", import.meta.url));
@@ -29,14 +29,25 @@ function makeRepo(): { dir: string; git: (...args: string[]) => void } {
 
   writeFileSync(
     join(dir, "api.ts"),
-    lines("export function keepMe(a: number) {", "  return a;", "}", "", "export function doomed() {", "  return 1;", "}"),
+    lines(
+      "export function keepMe(a: number) {",
+      "  return a;",
+      "}",
+      "",
+      "export function doomed() {",
+      "  return 1;",
+      "}",
+    ),
   );
   writeFileSync(join(dir, "old.py"), lines("def legacy():", "    pass"));
   writeFileSync(join(dir, "notes.txt"), "v1\n");
   git("add", ".");
   git("commit", "-q", "-m", "add files");
 
-  writeFileSync(join(dir, "api.ts"), lines("export function keepMe(a: number, b: number) {", "  return a + b;", "}"));
+  writeFileSync(
+    join(dir, "api.ts"),
+    lines("export function keepMe(a: number, b: number) {", "  return a + b;", "}"),
+  );
   git("commit", "-q", "-am", "remove doomed");
 
   writeFileSync(join(dir, "notes.txt"), "v2\n");
@@ -49,7 +60,9 @@ function vernon(dir: string, ...args: string[]) {
   return spawnSync(process.execPath, [BIN, ...args], { cwd: dir, encoding: "utf8" });
 }
 
-test("cli - scan --ref mourns deletions in the range with that range's commit message", { skip }, () => {
+test("cli - scan --ref mourns deletions in the range with that range's commit message", {
+  skip,
+}, () => {
   const { dir } = makeRepo();
 
   const result = vernon(dir, "scan", "--ref", "HEAD~2..HEAD", "--dry-run");

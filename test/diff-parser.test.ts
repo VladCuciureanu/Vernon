@@ -1,5 +1,5 @@
-import { test } from "node:test";
 import assert from "node:assert/strict";
+import { test } from "node:test";
 import { parseDiff } from "../src/diff-parser.ts";
 
 test("parseDiff - returns empty array for empty diff", () => {
@@ -96,7 +96,7 @@ index abc..def 100644
   assert.ok(allRemoved.every((l) => !l.startsWith("-- ")));
 });
 
-test("parseDiff - handles paths containing \" b/\"", () => {
+test('parseDiff - handles paths containing " b/"', () => {
   const diff = `diff --git a/docs/a b/c.ts b/docs/a b/c.ts
 deleted file mode 100644
 index abc..000
@@ -180,7 +180,10 @@ index abc..def 100644
 +const limit = 20;
 `;
   const result = parseDiff(diff);
-  assert.deepEqual(result.map((d) => d.name), ["dropUser"]);
+  assert.deepEqual(
+    result.map((d) => d.name),
+    ["dropUser"],
+  );
   assert.deepEqual(result[0].removedLines, [
     "export function dropUser(id: string) {",
     "  return db.drop(id);",
