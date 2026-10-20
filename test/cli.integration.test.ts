@@ -262,6 +262,20 @@ test("cli - mourn accepts a directory and mourns everything under it", { skip },
   assert.doesNotMatch(exact.stdout, /b\.py/);
 });
 
+test("cli - mourn rejects an empty or slash-only path but takes . as the whole tree", {
+  skip,
+}, () => {
+  const { dir } = makeRepo();
+
+  for (const path of ["", "/", "//", "\\"]) {
+    assertUsageError(vernon(dir, "mourn", path, "--ref", "HEAD~2..HEAD"), /mourn needs a file/);
+  }
+
+  const all = vernon(dir, "mourn", ".", "--ref", "HEAD~2..HEAD", "--dry-run");
+  assert.deepEqual(all.status, 0, all.stderr);
+  assert.match(all.stdout, /doomed\(\)/);
+});
+
 test("cli - mourn normalises ./, backslashes and paths relative to a subdirectory", {
   skip,
 }, () => {

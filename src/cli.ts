@@ -116,6 +116,10 @@ function parseCliArgs(args: readonly string[]): CliOptions | "help" | "version" 
   } else if (command === "mourn") {
     mournPath = rest.shift();
     if (mournPath === undefined) throw new UsageError("mourn needs a <path>");
+    // These would normalise to the whole tree; only `.` asks for that.
+    if (/^[/\\]*$/.test(mournPath)) {
+      throw new UsageError(`mourn needs a file or directory, got '${mournPath}'; use . for all`);
+    }
   }
   if (rest.length > 0) throw new UsageError(`unexpected argument '${rest[0]}'`);
 
