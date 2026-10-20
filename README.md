@@ -108,14 +108,14 @@ vernon hook install    # writes to .git/hooks/pre-commit
 vernon hook uninstall  # removes it
 ```
 
-This adds a `vernon diff` command to your pre-commit hook, so `vernon` must be installed globally (see [Install](#install)). If a hook already exists, it won't overwrite it — just appends.
+This adds a `vernon diff` line to your pre-commit hook. It runs the globally installed `vernon` (see [Install](#install)), is skipped if `vernon` isn't on your PATH, and never blocks the commit. If a hook already exists, it won't overwrite it — just appends.
 
 ### Manual hook
 
 Add this to `.git/hooks/pre-commit` (or your hook runner of choice):
 
 ```bash
-vernon diff
+command -v vernon >/dev/null 2>&1 && vernon diff || true
 ```
 
 ## Supported Languages

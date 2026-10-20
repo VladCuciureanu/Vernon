@@ -4,13 +4,15 @@ import { getHooksDir, getRepoRoot } from "./git.ts";
 
 const HOOK_MARKER = "# vernon hook";
 // Runs the globally installed `vernon` bin, so the hook works without the
-// package being published to a registry.
-const HOOK_COMMAND = "vernon diff";
-// Commands written by earlier versions of Vernon (Deno build, then npx); still
-// removed on uninstall.
+// package being published to a registry. Obituaries are a side show: the hook
+// skips when vernon isn't installed and never blocks the commit.
+const HOOK_COMMAND = "command -v vernon >/dev/null 2>&1 && vernon diff || true";
+// Commands written by earlier versions of Vernon (Deno build, npx, bare bin);
+// still removed on uninstall.
 const LEGACY_HOOK_COMMANDS = [
   "deno run --allow-run --allow-read --allow-write jsr:@vladcuciureanu/vernon diff",
   "npx @vladcuciureanu/vernon diff",
+  "vernon diff",
 ];
 
 function getHookPath(repoRoot?: string): string {
