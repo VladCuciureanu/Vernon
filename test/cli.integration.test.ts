@@ -261,3 +261,48 @@ test("cli - mourn accepts a directory and mourns everything under it", { skip },
   assert.match(exact.stdout, /a\.py/);
   assert.doesNotMatch(exact.stdout, /b\.py/);
 });
+
+test("cli - mourn rejects an empty or slash-only path but takes . as the whole tree", {
+  skip,
+}, () => {
+  const { dir } = makeRepo();
+
+  for (const path of ["", "/", "//", "\\"]) {
+    assertUsageError(vernon(dir, "mourn", path, "--ref", "HEAD~2..HEAD"), /mourn needs a file/);
+  }
+
+  const all = vernon(dir, "mourn", ".", "--ref", "HEAD~2..HEAD", "--dry-run");
+  assert.deepEqual(all.status, 0, all.stderr);
+  assert.match(all.stdout, /doomed\(\)/);
+});
+
+test("cli - mourn normalises ./, backslashes and paths relative to a subdirectory", {
+  skip,
+}, () => {
+  const { dir, git } = makeRepo();
+  mkdirSync(join(dir, "src", "legacy"), { recursive: true });
+  writeFileSync(join(dir, "src", "legacy", "a.py"), "x = 1\n");
+  writeFileSync(join(dir, "src", "keep.py"), "y = 2\n");
+  git("add", ".");
+  git("commit", "-q", "-m", "add legacy");
+  git("rm", "-q", "-r", "src/legacy", "src/keep.py");
+  git("commit", "-q", "-m", "drop legacy");
+  // git rm took the directories with it; recreate them to run vernon there.
+  mkdirSync(join(dir, "src", "legacy"), { recursive: true });
+
+  const cases: [string, string][] = [
+    [dir, "./src/legacy"],
+    [dir, "src\\legacy"],
+    [dir, ".\\src\\legacy\\"],
+    [join(dir, "src"), "legacy"],
+    [join(dir, "src"), "./legacy/a.py"],
+    [join(dir, "src", "legacy"), "."],
+    [join(dir, "src", "legacy"), "../legacy"],
+  ];
+  for (const [cwd, path] of cases) {
+    const result = vernon(cwd, "mourn", path, "--dry-run");
+    assert.deepEqual(result.status, 0, result.stderr);
+    assert.match(result.stdout, /a\.py/, `${path} from ${cwd}`);
+    assert.doesNotMatch(result.stdout, /keep\.py/, `${path} from ${cwd}`);
+  }
+});

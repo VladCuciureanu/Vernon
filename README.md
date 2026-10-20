@@ -17,7 +17,7 @@ No AI and no network calls: just `git` and templates.
 
 ## Install
 
-Vernon isn't on the npm registry yet, so install it from a clone:
+Vernon isn't published to npm; install it from a clone:
 
 ```bash
 git clone https://github.com/VladCuciureanu/Vernon.git
@@ -26,7 +26,7 @@ npm install     # the prepare script compiles to dist/
 npm link        # puts `vernon` on your PATH
 ```
 
-An earlier Deno build is published on JSR as `jsr:@vladcuciureanu/vernon`.
+The earlier Deno version on JSR (`jsr:@vladcuciureanu/vernon`) is deprecated.
 
 ## Usage
 
@@ -41,7 +41,7 @@ vernon hook install                 # add Vernon to the pre-commit hook
 vernon hook uninstall               # remove it again
 ```
 
-With no command, Vernon runs `scan`. `mourn` paths are relative to the repository root, and a directory matches every deletion beneath it; `mourn` shows every match, with no limit. Obituaries are printed to stdout (with a leading icon only when stdout is a terminal, so piped output is plain text) and appended to `CEMETERY.md` at the repository root, under a heading for today's date. Vernon never commits that file; that's up to you.
+With no command, Vernon runs `scan`. `mourn` paths are relative to the current directory, like git's (so from the repository root they are root-relative), may use `/` or `\` separators and a leading `./`, and a directory matches every deletion beneath it; `mourn` shows every match, with no limit. Obituaries are printed to stdout (with a leading icon only when stdout is a terminal, so piped output is plain text) and appended to `CEMETERY.md` at the repository root, under a heading for today's date. Vernon never commits that file; that's up to you.
 
 | Option | Applies to | Description |
 |--------|------------|-------------|
@@ -52,7 +52,7 @@ With no command, Vernon runs `scan`. `mourn` paths are relative to the repositor
 | `-h`, `--help` | all | Show help |
 | `--version` | all | Print the version number |
 
-Errors are printed to stderr as a single `vernon: ...` line. Outside a git repository, `scan`, `diff` and `mourn` exit with status 1, and so does a git error (for example an unknown ref). A usage error (an unknown command or option, an option the command doesn't take, an option missing its value, a missing or extra argument, or a `--limit` that isn't a positive integer) also prints a short usage line and exits with status 2.
+Errors are printed to stderr as a single `vernon: ...` line. Outside a git repository, `scan`, `diff` and `mourn` exit with status 1, and so does a git error (for example an unknown ref). A usage error (an unknown command or option, an option the command doesn't take, an option missing its value, a missing or extra argument, an empty or slash-only `mourn` path (use `.` for the whole tree), or a `--limit` that isn't a positive integer) also prints a short usage line and exits with status 2.
 
 ### Pre-commit hook
 
@@ -94,4 +94,4 @@ npm run dev -- scan --dry-run     # run from source, restarting on changes
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).

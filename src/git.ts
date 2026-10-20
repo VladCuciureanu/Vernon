@@ -128,3 +128,9 @@ export function getHooksDir(cwd: string): string | null {
 export function getRepoRoot(): string {
   return tryGit(["rev-parse", "--show-toplevel"]) || process.cwd();
 }
+
+// The current directory relative to the repository root, with a trailing
+// slash ("src/legacy/"), or "" at the root or outside a repository.
+export function getPathPrefix(): string {
+  return tryGit(["rev-parse", "--show-prefix"]) ?? "";
+}
