@@ -14,7 +14,7 @@
     "access": "public"
   },
   "engines": {
-    "node": ">=24"
+    "node": ">=26"
   },
   "scripts": {
     "start": "node bin/vernon.ts",
@@ -25,7 +25,7 @@
     "typecheck": "tsc"
   },
   "devDependencies": {
-    "@types/node": "^24.19.2",
+    "@types/node": "^26",
     "typescript": "^7.0.2"
   }
 }
