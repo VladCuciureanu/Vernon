@@ -28,9 +28,9 @@ function addToHook(existing: string): string {
   const lines = existing.replace(/\n+$/, "").split("\n");
   const last = lines.length - 1;
   if (/^\s*exit(\s|;|$)/.test(lines[last])) {
-    return [...lines.slice(0, last), ...block, lines[last]].join("\n") + "\n";
+    return `${[...lines.slice(0, last), ...block, lines[last]].join("\n")}\n`;
   }
-  return [...lines, "", ...block].join("\n") + "\n";
+  return `${[...lines, "", ...block].join("\n")}\n`;
 }
 
 export function installHook(repoRoot?: string): void {
@@ -79,7 +79,7 @@ export function uninstallHook(repoRoot?: string): void {
   if (result === "#!/bin/sh" || result === "") {
     rmSync(hookPath);
   } else {
-    writeFileSync(hookPath, result + "\n");
+    writeFileSync(hookPath, `${result}\n`);
   }
 
   console.log("Pre-commit hook removed.");

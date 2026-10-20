@@ -5,13 +5,19 @@ import type { Deletion } from "../src/types.ts";
 
 function countingLookups(): { lookups: FileLookups; calls: string[] } {
   const calls: string[] = [];
+  const record =
+    <T>(label: string, value: T) =>
+    (p: string): T => {
+      calls.push(`${label} ${p}`);
+      return value;
+    };
   const lookups: FileLookups = {
-    getFileCreationDate: (p) => (calls.push(`created ${p}`), "2022-03-15T10:00:00+00:00"),
-    getFileAuthor: (p) => (calls.push(`author ${p}`), "Jane"),
-    getLastEditor: (p) => (calls.push(`editor ${p}`), "John"),
-    getCommitCount: (p) => (calls.push(`count ${p}`), 4),
-    getCauseOfDeath: (p) => (calls.push(`cause ${p}`), "cleanup"),
-    getFileContentBeforeDeletion: (p) => (calls.push(`content ${p}`), "a\nb\nc"),
+    getFileCreationDate: record("created", "2022-03-15T10:00:00+00:00"),
+    getFileAuthor: record("author", "Jane"),
+    getLastEditor: record("editor", "John"),
+    getCommitCount: record("count", 4),
+    getCauseOfDeath: record("cause", "cleanup"),
+    getFileContentBeforeDeletion: record("content", "a\nb\nc"),
   };
   return { lookups, calls };
 }

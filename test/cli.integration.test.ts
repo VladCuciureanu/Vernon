@@ -11,7 +11,7 @@ const hasGit = spawnSync("git", ["--version"]).status === 0;
 const skip = hasGit ? false : "git not installed";
 
 function lines(...l: string[]): string {
-  return l.join("\n") + "\n";
+  return `${l.join("\n")}\n`;
 }
 
 // c1 "add files": api.ts (keepMe, doomed), old.py

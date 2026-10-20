@@ -72,7 +72,7 @@ const LANGUAGES: Record<string, LanguagePattern> = {
 };
 
 export function detectLanguage(filePath: string): string {
-  const ext = "." + filePath.split(".").pop();
+  const ext = `.${filePath.split(".").pop()}`;
   for (const [lang, { extensions }] of Object.entries(LANGUAGES)) {
     if (extensions.includes(ext)) return lang;
   }
