@@ -1,3 +1,4 @@
+import { parseArgs } from "node:util";
 import { appendToCemetery, readCemetery } from "./cemetery.ts";
 import { parseDiff } from "./diff-parser.ts";
 import { GitError, getCommitDiff, getStagedDiff, isInsideGitRepo } from "./git.ts";
@@ -6,47 +7,62 @@ import { createEnricher } from "./metadata.ts";
 import { generateObituary } from "./obituary-generator.ts";
 import type { CliOptions, Deletion, DiffSource } from "./types.ts";
 
-function parseArgs(args: readonly string[]): CliOptions {
-  const opts: CliOptions = {
-    command: "scan",
-    dryRun: false,
-    verbose: false,
-    limit: 20,
-  };
+const COMMANDS = ["scan", "diff", "history", "hook", "mourn"] as const;
 
-  let i = 0;
-  const command = args[0];
+const OPTIONS = {
+  ref: { type: "string" },
+  "dry-run": { type: "boolean" },
+  verbose: { type: "boolean" },
+  limit: { type: "string" },
+  help: { type: "boolean", short: "h" },
+} as const;
 
-  if (
-    command === "scan" ||
-    command === "diff" ||
-    command === "history" ||
-    command === "hook" ||
-    command === "mourn"
-  ) {
-    opts.command = command;
-    i = 1;
+const SHORT_USAGE = "Usage: vernon [scan|diff|history|hook|mourn] [options]; see vernon --help";
+
+class UsageError extends Error {}
+
+function isCommand(arg: string): arg is CliOptions["command"] {
+  return (COMMANDS as readonly string[]).includes(arg);
+}
+
+function strictParse(args: readonly string[]) {
+  try {
+    return parseArgs({ args: [...args], options: OPTIONS, strict: true, allowPositionals: true });
+  } catch (err) {
+    if (!(err instanceof TypeError)) throw err;
+    // node:util's messages run on with advice about `--`; keep the first sentence.
+    const message = err.message.split(/\.\s|\n/)[0];
+    throw new UsageError(message.charAt(0).toLowerCase() + message.slice(1));
   }
+}
 
-  while (i < args.length) {
-    const arg = args[i];
-    if (arg === "--ref" && args[i + 1]) {
-      opts.ref = args[++i];
-    } else if (arg === "--dry-run") {
-      opts.dryRun = true;
-    } else if (arg === "--verbose") {
-      opts.verbose = true;
-    } else if (arg === "--limit" && args[i + 1]) {
-      opts.limit = parseInt(args[++i], 10);
-    } else if (opts.command === "hook" && (arg === "install" || arg === "uninstall")) {
-      opts.hookAction = arg;
-    } else if (opts.command === "mourn") {
-      opts.mournPath = arg;
+// Throws UsageError for unknown commands or options, missing option values
+// and a --limit that is not a positive integer.
+function parseCliArgs(args: readonly string[]): CliOptions & { help: boolean } {
+  const { values, positionals } = strictParse(args);
+
+  const [command = "scan", ...rest] = positionals;
+  if (!isCommand(command)) throw new UsageError(`unknown command '${command}'`);
+
+  let limit = 20;
+  if (values.limit !== undefined) {
+    if (!/^[1-9]\d*$/.test(values.limit)) {
+      throw new UsageError(`--limit must be a positive integer, got '${values.limit}'`);
     }
-    i++;
+    limit = Number(values.limit);
   }
 
-  return opts;
+  const hookAction = rest.find((arg) => arg === "install" || arg === "uninstall");
+  return {
+    command,
+    ref: values.ref,
+    hookAction: command === "hook" ? hookAction : undefined,
+    mournPath: command === "mourn" ? rest.at(-1) : undefined,
+    dryRun: values["dry-run"] ?? false,
+    verbose: values.verbose ?? false,
+    limit,
+    help: values.help ?? false,
+  };
 }
 
 function printUsage(): void {
@@ -65,17 +81,35 @@ Commands:
 Options:
   --dry-run                Print obituaries without writing to CEMETERY.md
   --verbose                Show detection details
-  --limit N                Max obituaries to generate (default: 20)
+  --limit N                Max obituaries to generate, a positive integer
+                           (default: 20)
+  -h, --help               Show this help
+
+Exit status: 0 on success, 1 on a git error or outside a git repository,
+2 on a usage error.
 `);
 }
 
+function fail(message: string, exitCode: number): void {
+  console.error(`vernon: ${message}`);
+  process.exitCode = exitCode;
+}
+
 export function run(args: readonly string[]): void {
-  if (args.includes("--help") || args.includes("-h")) {
-    printUsage();
+  let opts: ReturnType<typeof parseCliArgs>;
+  try {
+    opts = parseCliArgs(args);
+  } catch (err) {
+    if (!(err instanceof UsageError)) throw err;
+    fail(err.message, 2);
+    console.error(SHORT_USAGE);
     return;
   }
 
-  const opts = parseArgs(args);
+  if (opts.help) {
+    printUsage();
+    return;
+  }
 
   if (opts.command === "history") {
     const content = readCemetery();
@@ -95,8 +129,8 @@ export function run(args: readonly string[]): void {
   }
 
   if (!isInsideGitRepo()) {
-    console.error("Not inside a git repository.");
-    process.exit(1);
+    fail("not inside a git repository", 1);
+    return;
   }
 
   let rawDiff: string;
@@ -105,8 +139,7 @@ export function run(args: readonly string[]): void {
     rawDiff = opts.command === "diff" ? getStagedDiff() : getCommitDiff(opts.ref);
   } catch (err) {
     if (!(err instanceof GitError)) throw err;
-    console.error(`vernon: ${err.message}`);
-    process.exitCode = 1;
+    fail(err.message, 1);
     return;
   }
 

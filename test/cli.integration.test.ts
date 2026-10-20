@@ -98,3 +98,38 @@ test("cli - a bad --ref prints git's error and exits 1", { skip }, () => {
   assert.match(result.stderr, /^vernon: .*no-such-ref/m);
   assert.deepEqual(result.stdout, "");
 });
+
+function assertUsageError(result: ReturnType<typeof vernon>, message: RegExp): void {
+  assert.deepEqual(result.status, 2, result.stdout);
+  assert.match(result.stderr, message);
+  assert.match(result.stderr, /^vernon: /);
+  assert.match(result.stderr, /Usage: vernon/);
+  assert.deepEqual(result.stdout, "");
+}
+
+test("cli - an unknown command is a usage error, not a scan", { skip }, () => {
+  const { dir } = makeRepo();
+  assertUsageError(vernon(dir, "sacn", "--dry-run"), /unknown command 'sacn'/);
+});
+
+test("cli - unknown flags are usage errors", { skip }, () => {
+  const { dir } = makeRepo();
+  assertUsageError(vernon(dir, "scan", "--dryrun"), /unknown option '--dryrun'/);
+  assertUsageError(vernon(dir, "-x"), /unknown option '-x'/);
+});
+
+test("cli - --ref and --limit without a value are usage errors", { skip }, () => {
+  const { dir } = makeRepo();
+  assertUsageError(vernon(dir, "scan", "--ref"), /--ref/);
+  assertUsageError(vernon(dir, "scan", "--dry-run", "--limit"), /--limit/);
+});
+
+test("cli - --limit must be a positive integer", { skip }, () => {
+  const { dir } = makeRepo();
+  for (const bad of ["abc", "0", "1.5", "3x"]) {
+    assertUsageError(vernon(dir, "scan", "--limit", bad, "--dry-run"), /--limit must be/);
+  }
+  const ok = vernon(dir, "scan", "--ref", "HEAD~2..HEAD", "--limit", "1", "--dry-run");
+  assert.deepEqual(ok.status, 0, ok.stderr);
+  assert.match(ok.stdout, /doomed\(\)/);
+});
