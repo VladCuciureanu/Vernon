@@ -17,7 +17,7 @@ No AI and no network calls: just `git` and templates.
 
 ## Install
 
-Vernon isn't on the npm registry yet, so install it from a clone:
+Vernon isn't published to npm; install it from a clone:
 
 ```bash
 git clone https://github.com/VladCuciureanu/Vernon.git
@@ -26,7 +26,7 @@ npm install     # the prepare script compiles to dist/
 npm link        # puts `vernon` on your PATH
 ```
 
-An earlier Deno build is published on JSR as `jsr:@vladcuciureanu/vernon`.
+The earlier Deno version on JSR (`jsr:@vladcuciureanu/vernon`) is deprecated.
 
 ## Usage
 
