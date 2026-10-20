@@ -41,7 +41,7 @@ vernon hook install                 # add Vernon to the pre-commit hook
 vernon hook uninstall               # remove it again
 ```
 
-With no command, Vernon runs `scan`. `mourn` paths are relative to the repository root, and a directory matches every deletion beneath it; `mourn` shows every match, with no limit. Obituaries are printed to stdout (with a leading icon only when stdout is a terminal, so piped output is plain text) and appended to `CEMETERY.md` at the repository root, under a heading for today's date. Vernon never commits that file; that's up to you.
+With no command, Vernon runs `scan`. `mourn` paths are relative to the current directory, like git's (so from the repository root they are root-relative), may use `/` or `\` separators and a leading `./`, and a directory matches every deletion beneath it; `mourn` shows every match, with no limit. Obituaries are printed to stdout (with a leading icon only when stdout is a terminal, so piped output is plain text) and appended to `CEMETERY.md` at the repository root, under a heading for today's date. Vernon never commits that file; that's up to you.
 
 | Option | Applies to | Description |
 |--------|------------|-------------|

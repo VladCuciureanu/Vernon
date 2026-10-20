@@ -1,8 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
+import { posix } from "node:path";
 import { parseArgs } from "node:util";
 import { appendToCemetery, readCemetery } from "./cemetery.ts";
 import { parseDiff } from "./diff-parser.ts";
-import { GitError, getCommitDiff, getStagedDiff, isInsideGitRepo } from "./git.ts";
+import { GitError, getCommitDiff, getPathPrefix, getStagedDiff, isInsideGitRepo } from "./git.ts";
 import { installHook, uninstallHook } from "./hook.ts";
 import { createEnricher } from "./metadata.ts";
 import { generateObituary } from "./obituary-generator.ts";
@@ -150,8 +151,8 @@ Commands:
   mourn <path> [--ref <ref>]
                            Only mourn deletions in <path> (a file, or a
                            directory and everything under it, relative to
-                           the repository root) from the latest commit
-                           (or --ref)
+                           the current directory; / or \\ separators) from
+                           the latest commit (or --ref)
 
 Options (an option a command doesn't take is an error):
   --dry-run                Print obituaries without writing to CEMETERY.md
@@ -236,8 +237,9 @@ export function run(args: readonly string[]): void {
   const { mournPath } = opts;
   if (mournPath !== undefined) {
     // A file path, or a directory: everything under it.
-    const dir = `${mournPath.replace(/\/+$/, "")}/`;
-    deletions = deletions.filter((d) => d.filePath === mournPath || d.filePath.startsWith(dir));
+    const target = toRepoPath(mournPath);
+    const dir = target === "" ? "" : `${target}/`;
+    deletions = deletions.filter((d) => d.filePath === target || d.filePath.startsWith(dir));
     if (deletions.length === 0) {
       console.log(`No deletions found for ${mournPath}`);
       return;
@@ -251,6 +253,14 @@ export function run(args: readonly string[]): void {
     console.log(`Found ${deletions.length} deletions, showing first ${opts.limit}.`);
   }
   processObituaries(deletions.slice(0, opts.limit), opts);
+}
+
+// A path relative to the current directory, with / or \ separators, as a
+// path relative to the repository root without ./ or a trailing slash ("" for
+// the root itself): the form git uses in diffs.
+function toRepoPath(path: string): string {
+  const normalized = posix.normalize(getPathPrefix() + path.replaceAll("\\", "/"));
+  return normalized.replace(/\/+$/, "").replace(/^\.$/, "");
 }
 
 function processObituaries(deletions: Deletion[], opts: CliOptions): void {
