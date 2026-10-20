@@ -8,23 +8,16 @@ Your git history is now a cemetery.
 
 ## Install
 
-Requires Node.js 24 or newer.
+Requires Node.js 24 or newer. Vernon isn't on the npm registry yet, so install it from a clone:
 
 ```bash
-npm install -g github:VladCuciureanu/Vernon
-```
-
-This installs straight from the GitHub repository (the `prepare` script compiles it during install) and puts `vernon` on your PATH.
-
-Deno users can still use the earlier Deno build published on JSR as `jsr:@vladcuciureanu/vernon`.
-
-### From source
-
-```bash
-npm install
-npm run build
+git clone https://github.com/VladCuciureanu/Vernon.git
+cd Vernon
+npm install     # the `prepare` script compiles to dist/
 npm link        # puts `vernon` on your PATH
 ```
+
+Deno users can still use the earlier Deno build published on JSR as `jsr:@vladcuciureanu/vernon`.
 
 ## Development
 
