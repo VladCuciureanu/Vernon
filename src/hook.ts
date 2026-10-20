@@ -1,6 +1,6 @@
-import { chmodSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { getRepoRoot } from "./git.ts";
+import { chmodSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { getHooksDir, getRepoRoot } from "./git.ts";
 
 const HOOK_MARKER = "# vernon hook";
 // Runs the globally installed `vernon` bin, so the hook works without the
@@ -15,7 +15,20 @@ const LEGACY_HOOK_COMMANDS = [
 
 function getHookPath(repoRoot?: string): string {
   const root = repoRoot ?? (getRepoRoot() || process.cwd());
-  return join(root, ".git", "hooks", "pre-commit");
+  const hooksDir = getHooksDir(root) ?? join(root, ".git", "hooks");
+  return join(hooksDir, "pre-commit");
+}
+
+// Adds Vernon's lines to an existing hook. If the hook ends with an `exit`,
+// they go before it so they still run.
+function addToHook(existing: string): string {
+  const block = [HOOK_MARKER, HOOK_COMMAND];
+  const lines = existing.replace(/\n+$/, "").split("\n");
+  const last = lines.length - 1;
+  if (/^\s*exit(\s|;|$)/.test(lines[last])) {
+    return [...lines.slice(0, last), ...block, lines[last]].join("\n") + "\n";
+  }
+  return [...lines, "", ...block].join("\n") + "\n";
 }
 
 export function installHook(repoRoot?: string): void {
@@ -28,8 +41,9 @@ export function installHook(repoRoot?: string): void {
       console.log("Hook already installed.");
       return;
     }
-    writeFileSync(hookPath, existing + `\n${HOOK_MARKER}\n${HOOK_COMMAND}\n`);
+    writeFileSync(hookPath, addToHook(existing));
   } else {
+    mkdirSync(dirname(hookPath), { recursive: true });
     writeFileSync(hookPath, hookContent);
   }
 

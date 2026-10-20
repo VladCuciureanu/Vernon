@@ -109,6 +109,12 @@ export function getFileContentBeforeDeletion(filePath: string, source: DiffSourc
   return tryGit(["show", "--end-of-options", `${rev}:${filePath}`]) || null;
 }
 
+// The hooks directory git actually uses for the repo at `cwd` (honours
+// core.hooksPath and linked worktrees), or null outside a repository.
+export function getHooksDir(cwd: string): string | null {
+  return tryGit(["-C", cwd, "rev-parse", "--path-format=absolute", "--git-path", "hooks"]);
+}
+
 export function getRepoRoot(): string {
   return tryGit(["rev-parse", "--show-toplevel"]) ?? "";
 }

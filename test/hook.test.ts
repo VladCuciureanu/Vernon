@@ -3,12 +3,15 @@ import assert from "node:assert/strict";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { installHook, uninstallHook } from "../src/hook.ts";
 
 function makeTempRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), "vernon-hook-test-"));
-  const hooksDir = join(dir, ".git", "hooks");
-  mkdirSync(hooksDir, { recursive: true });
+  execFileSync("git", ["init", "-q"], { cwd: dir, stdio: "ignore" });
+  // Keep tests independent of any global core.hooksPath.
+  execFileSync("git", ["config", "core.hooksPath", ".git/hooks"], { cwd: dir, stdio: "ignore" });
+  mkdirSync(join(dir, ".git", "hooks"), { recursive: true });
   return dir;
 }
 
@@ -112,4 +115,31 @@ test("uninstallHook - removes legacy deno and npx hook lines", () => {
 
   const content = readFileSync(hookPath, "utf8");
   assert.deepEqual(content, "#!/bin/sh\nnpx lint-staged\n");
+});
+
+test("installHook - honours core.hooksPath", () => {
+  const dir = makeTempRepo();
+  execFileSync("git", ["config", "core.hooksPath", ".githooks"], { cwd: dir, stdio: "ignore" });
+
+  installHook(dir);
+
+  assert.deepEqual(existsSync(join(dir, ".githooks", "pre-commit")), true);
+  assert.deepEqual(existsSync(join(dir, ".git", "hooks", "pre-commit")), false);
+
+  uninstallHook(dir);
+  assert.deepEqual(existsSync(join(dir, ".githooks", "pre-commit")), false);
+});
+
+test("installHook - inserts before a trailing exit in an existing hook", () => {
+  const dir = makeTempRepo();
+  const hookPath = join(dir, ".git", "hooks", "pre-commit");
+  writeFileSync(hookPath, "#!/bin/sh\nnpx lint-staged\nexit 0\n\n");
+
+  installHook(dir);
+
+  const content = readFileSync(hookPath, "utf8");
+  assert.deepEqual(content, "#!/bin/sh\nnpx lint-staged\n# vernon hook\nvernon diff\nexit 0\n");
+
+  uninstallHook(dir);
+  assert.deepEqual(readFileSync(hookPath, "utf8"), "#!/bin/sh\nnpx lint-staged\nexit 0\n");
 });
