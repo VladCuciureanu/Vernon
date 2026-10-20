@@ -82,10 +82,12 @@ Each obituary combines one line from each of five template pools (24,192 combina
 ## Development
 
 ```bash
-npm test                        # node:test, test/**/*.test.ts
-npm run typecheck               # tsc
-npm run build                   # compile to dist/
-npm run dev -- scan --dry-run   # run from source
+npm test                          # node:test, test/**/*.test.ts
+npm run check                     # biome check, typecheck and tests
+npm run format                    # format and apply safe fixes with Biome
+npm run build                     # compile to dist/
+npm start -- scan --dry-run       # run from source
+npm run dev -- scan --dry-run     # run from source, restarting on changes
 ```
 
 ## License
