@@ -3,8 +3,7 @@ import type { Deletion, DiffSource, Metadata } from "./types.ts";
 
 // The per-file git lookups metadata needs; injectable for tests.
 export interface FileLookups {
-  getFileCreationDate(filePath: string): string | null;
-  getFileAuthor(filePath: string): string | null;
+  getFileOrigin(filePath: string): { date: string; author: string } | null;
   getLastEditor(filePath: string): string | null;
   getCommitCount(filePath: string): number;
   getCauseOfDeath(filePath: string, source: DiffSource): string;
@@ -31,10 +30,10 @@ export function createEnricher(
   function history(filePath: string): FileHistory {
     let h = histories.get(filePath);
     if (!h) {
-      const birthDateRaw = lookups.getFileCreationDate(filePath);
+      const origin = lookups.getFileOrigin(filePath);
       h = {
-        birthDate: birthDateRaw ? birthDateRaw.split("T")[0] : "unknown origin",
-        author: lookups.getFileAuthor(filePath) ?? "unknown",
+        birthDate: origin ? origin.date.split("T")[0] : "unknown origin",
+        author: origin?.author || "unknown",
         lastEditor: lookups.getLastEditor(filePath) ?? "unknown",
         commitCount: lookups.getCommitCount(filePath),
         causeOfDeath: lookups.getCauseOfDeath(filePath, source),

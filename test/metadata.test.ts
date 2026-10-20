@@ -12,8 +12,7 @@ function countingLookups(): { lookups: FileLookups; calls: string[] } {
       return value;
     };
   const lookups: FileLookups = {
-    getFileCreationDate: record("created", "2022-03-15T10:00:00+00:00"),
-    getFileAuthor: record("author", "Jane"),
+    getFileOrigin: record("origin", { date: "2022-03-15T10:00:00+00:00", author: "Jane" }),
     getLastEditor: record("editor", "John"),
     getCommitCount: record("count", 4),
     getCauseOfDeath: record("cause", "cleanup"),
@@ -41,8 +40,8 @@ test("createEnricher - runs each file's git lookups once", () => {
   enrich(fn("c", "src/x.ts"));
   enrich(fn("d", "src/y.ts"));
 
-  assert.deepEqual(calls.filter((c) => c.endsWith("src/x.ts")).length, 5);
-  assert.deepEqual(calls.filter((c) => c.endsWith("src/y.ts")).length, 5);
+  assert.deepEqual(calls.filter((c) => c.endsWith("src/x.ts")).length, 4);
+  assert.deepEqual(calls.filter((c) => c.endsWith("src/y.ts")).length, 4);
 });
 
 test("createEnricher - builds metadata from the lookups", () => {
