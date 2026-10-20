@@ -94,4 +94,4 @@ npm run dev -- scan --dry-run     # run from source, restarting on changes
 
 ## License
 
-MIT
+MIT. See [LICENSE](LICENSE).
