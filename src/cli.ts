@@ -1,5 +1,5 @@
 import type { CliOptions, Deletion } from "./types.ts";
-import { isInsideGitRepo, getStagedDiff, getCommitDiff } from "./git.ts";
+import { isInsideGitRepo, getStagedDiff, getCommitDiff, GitError } from "./git.ts";
 import { parseDiff } from "./diff-parser.ts";
 import { enrichDeletion } from "./metadata.ts";
 import { generateObituary } from "./obituary-generator.ts";
@@ -93,12 +93,19 @@ export function run(args: readonly string[]): void {
 
   let rawDiff: string;
 
-  if (opts.command === "diff") {
-    rawDiff = getStagedDiff();
-  } else if (opts.command === "mourn" && opts.mournPath) {
-    rawDiff = getCommitDiff(opts.ref);
-  } else {
-    rawDiff = getCommitDiff(opts.ref);
+  try {
+    if (opts.command === "diff") {
+      rawDiff = getStagedDiff();
+    } else if (opts.command === "mourn" && opts.mournPath) {
+      rawDiff = getCommitDiff(opts.ref);
+    } else {
+      rawDiff = getCommitDiff(opts.ref);
+    }
+  } catch (err) {
+    if (!(err instanceof GitError)) throw err;
+    console.error(`vernon: ${err.message}`);
+    process.exitCode = 1;
+    return;
   }
 
   if (!rawDiff) {

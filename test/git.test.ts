@@ -5,6 +5,7 @@ import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
+  GitError,
   getCommitCount,
   getCommitDiff,
   getFileAuthor,
@@ -55,12 +56,38 @@ test("git - --ref with shell metacharacters runs nothing", () => {
   execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: dir, stdio: "ignore" });
 
   inDir(dir, () => {
-    assert.deepEqual(getCommitDiff("HEAD; touch pwned-semi"), "");
-    assert.deepEqual(getCommitDiff("$(touch pwned-subst)"), "");
-    assert.deepEqual(getCommitDiff("--output=pwned-opt"), "");
+    assert.throws(() => getCommitDiff("HEAD; touch pwned-semi"), GitError);
+    assert.throws(() => getCommitDiff("$(touch pwned-subst)"), GitError);
+    assert.throws(() => getCommitDiff("--output=pwned-opt"), GitError);
   });
 
   assert.deepEqual(existsSync(join(dir, "pwned-semi")), false);
   assert.deepEqual(existsSync(join(dir, "pwned-subst")), false);
   assert.deepEqual(existsSync(join(dir, "pwned-opt")), false);
+});
+
+test("git - an unknown --ref throws git's error instead of returning nothing", () => {
+  const dir = makeTempRepo();
+  writeFileSync(join(dir, "a.ts"), "1\n");
+  execFileSync("git", ["add", "a.ts"], { cwd: dir, stdio: "ignore" });
+  execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: dir, stdio: "ignore" });
+
+  inDir(dir, () => {
+    assert.throws(() => getCommitDiff("no-such-branch"), (err: unknown) => {
+      assert.ok(err instanceof GitError);
+      assert.match(err.message, /no-such-branch/);
+      return true;
+    });
+  });
+});
+
+test("git - default scan of a repo with a single commit is empty, not an error", () => {
+  const dir = makeTempRepo();
+  writeFileSync(join(dir, "a.ts"), "1\n");
+  execFileSync("git", ["add", "a.ts"], { cwd: dir, stdio: "ignore" });
+  execFileSync("git", ["commit", "-q", "-m", "init"], { cwd: dir, stdio: "ignore" });
+
+  inDir(dir, () => {
+    assert.deepEqual(getCommitDiff(), "");
+  });
 });
