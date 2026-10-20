@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { appendToCemetery, readCemetery } from "./cemetery.ts";
 import { parseDiff } from "./diff-parser.ts";
@@ -15,6 +16,7 @@ const OPTIONS = {
   verbose: { type: "boolean" },
   limit: { type: "string" },
   help: { type: "boolean", short: "h" },
+  version: { type: "boolean" },
 } as const;
 
 const SHORT_USAGE = "Usage: vernon [scan|diff|history|hook|mourn] [options]; see vernon --help";
@@ -36,7 +38,7 @@ function strictParse(args: readonly string[]) {
   }
 }
 
-// The options each command accepts, besides --help.
+// The options each command accepts, besides --help and --version.
 const COMMAND_OPTIONS: Record<CliOptions["command"], readonly (keyof typeof OPTIONS)[]> = {
   scan: ["ref", "dry-run", "verbose", "limit"],
   diff: ["dry-run", "verbose", "limit"],
@@ -48,9 +50,10 @@ const COMMAND_OPTIONS: Record<CliOptions["command"], readonly (keyof typeof OPTI
 // Throws UsageError for unknown commands or options, missing option values or
 // arguments, options the command doesn't take, and a --limit that is not a
 // positive integer.
-function parseCliArgs(args: readonly string[]): CliOptions | "help" {
+function parseCliArgs(args: readonly string[]): CliOptions | "help" | "version" {
   const { values, positionals } = strictParse(args);
   if (values.help) return "help";
+  if (values.version) return "version";
 
   const [command = "scan", ...rest] = positionals;
   if (!isCommand(command)) throw new UsageError(`unknown command '${command}'`);
@@ -116,10 +119,20 @@ Options (an option a command doesn't take is an error):
   --limit N                Max obituaries to generate, a positive integer
                            (default: 20; scan, diff)
   -h, --help               Show this help
+  --version                Show the version number
 
 Exit status: 0 on success, 1 on a git error or outside a git repository,
 2 on a usage error.
 `);
+}
+
+// package.json is one level above src/cli.ts and two above dist/src/cli.js.
+function readVersion(): string {
+  for (const relative of ["../package.json", "../../package.json"]) {
+    const url = new URL(relative, import.meta.url);
+    if (existsSync(url)) return JSON.parse(readFileSync(url, "utf8")).version;
+  }
+  return "unknown";
 }
 
 function fail(message: string, exitCode: number): void {
@@ -140,6 +153,10 @@ export function run(args: readonly string[]): void {
 
   if (opts === "help") {
     printUsage();
+    return;
+  }
+  if (opts === "version") {
+    console.log(readVersion());
     return;
   }
 

@@ -177,3 +177,13 @@ test("cli - obituaries piped to another program have no emoji", { skip }, () => 
   assert.match(result.stdout, /old\.py/);
   assert.doesNotMatch(result.stdout, /\p{Extended_Pictographic}/u);
 });
+
+test("cli - --version prints the package version", { skip }, () => {
+  const { dir } = makeRepo();
+  const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+
+  const result = vernon(dir, "--version");
+
+  assert.deepEqual(result.status, 0, result.stderr);
+  assert.deepEqual(result.stdout.trim(), pkg.version);
+});
